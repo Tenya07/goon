@@ -478,6 +478,7 @@ body::before{content:'';position:fixed;right:-40px;bottom:10px;width:460px;heigh
 .mvgrip:active{cursor:grabbing}
 .tt th.rn .mvgrip,.tt td.rn .mvgrip{position:static;width:20px;height:16px;margin:2px auto 0;opacity:.4}
 .tt td.rn:hover .mvgrip{opacity:1}
+.rnop{display:block;width:20px;height:16px;margin:3px auto 0;border-radius:5px;border:1px solid var(--line);background:var(--card);color:var(--accent);font-size:12px;line-height:1;padding:0;opacity:.75;cursor:pointer} .rnop.del{color:var(--red)} .tt td.rn:hover .rnop{opacity:1}
 .tt td.drop,.tt tr.drop td{outline:2px dashed var(--accent-2);outline-offset:-3px}
 .tt td.cell.drop{background:var(--accent-soft)}
 .tt td.dragging,.tt tr.dragging td{opacity:.35}
@@ -1538,7 +1539,7 @@ const store={
 
 // ── Supabase 存储层（网站版）──
 const SUPA={url:'https://jegpkwauertdhtclutea.supabase.co',key:'sb_publishable_WQmffm6R6Wrt4LvmEHGe1g_JHcmQ85W'};
-const SITE_BUILT='2026-09-29 19:18 UTC';
+const SITE_BUILT='2026-09-29 19:29 UTC';
 const SEED=null;
 // ── 登录（Supabase Auth，只有登录了才读得到数据库）──
 const AUTH_LS='study-notebook-auth';
@@ -1761,9 +1762,9 @@ function renderTT(){
       <p class="lvpoem">朝游北越暮苍梧，袖里青蛇胆气粗。<br><span>三入岳阳人不识，朗吟飞过洞庭湖。</span><i>吕岩</i></p>
     </div>
   </div>
-  <p class="lead lvlead">点任何格子直接改，改完点外面或按 Ctrl+Enter 就存。格子右上角的圆点写作业，右下角的 ⠿ 按住拖走——拖到哪一格，两格就对调（作业跟着走）；拖行号左边的 ⠿ 是整行对调。${t.source?`原表在 <a href="${esc(t.source)}" target="_blank" rel="noopener">金山文档</a>，`:''}上次改动 ${esc(t.updatedAt||'')}。</p>
+  <p class="lead lvlead">点任何格子直接改，改完点外面或按 Ctrl+Enter 就存。格子右上角的圆点写作业，右下角的 ⠿ 按住拖走——拖到哪一格，两格就对调（作业跟着走）；拖行号左边的 ⠿ 是整行对调；行号下的 + 在中间插一行，空行会出现 × 可以删。${t.source?`原表在 <a href="${esc(t.source)}" target="_blank" rel="noopener">金山文档</a>，`:''}上次改动 ${esc(t.updatedAt||'')}。</p>
   <div class="ttwrap"><table class="tt"><thead><tr><th class="rn"></th>${days.map((d,i)=>`<th class="${i===today?'today':''}">${esc(d)}</th>`).join('')}</tr></thead><tbody>
-  ${rows.map((row,r)=>`<tr data-row="${r}"><td class="rn">${r+1}<button class="mvgrip" data-mvrow="${r}" title="按住拖到别的行号，整行对调">⠿</button></td>${days.map((d,c)=>{
+  ${rows.map((row,r)=>`<tr data-row="${r}"><td class="rn">${r+1}<button class="mvgrip" data-mvrow="${r}" title="按住拖到别的行号，整行对调">⠿</button><button class="rnop" data-rowins="${r}" title="在这一行下面插一行空的">+</button>${row.every(x=>!x)&&rows.length>1?`<button class="rnop del" data-rowdel="${r}" title="删掉这一空行">×</button>`:''}</td>${days.map((d,c)=>{
      const v=row[c]||''; const ed=editing&&editing.r===r&&editing.c===c;
      if(ed) return `<td class="cell editing"><textarea id="tt-edit" class="grow" data-r="${r}" data-c="${c}">${esc(v)}</textarea></td>`;
      const h=mem.hw[hwKey(r,c)];
@@ -2530,6 +2531,23 @@ function swapCells(r1,c1,r2,c2){
   ttSave(t);
   hwMove([[hwKey(r1,c1),hwKey(r2,c2),r2,c2],[hwKey(r2,c2),hwKey(r1,c1),r1,c1]]);
 }
+function insertRow(r){ // 在 r 下面插一行空的，下面的行连作业一起往下挪
+  const t=JSON.parse(JSON.stringify(ttData())); const n=(t.days||[]).length;
+  t.rows.splice(r+1,0,Array.from({length:n},()=>''));
+  openHw=null; editing=null; ttSave(t);
+  const pairs=[]; for(let i=t.rows.length-2;i>r;i--) for(let c=0;c<n;c++) pairs.push([hwKey(i,c),hwKey(i+1,c),i+1,c]);
+  for(let c=0;c<n;c++) pairs.push([hwKey(r+1,c)+'#none',hwKey(r+1,c),r+1,c]); // 新行的作业位清空
+  hwMove(pairs);
+}
+function deleteRow(r){
+  const t=JSON.parse(JSON.stringify(ttData())); const n=(t.days||[]).length;
+  if(t.rows.length<=1||!t.rows[r]||!t.rows[r].every(x=>!x)) return;
+  t.rows.splice(r,1); openHw=null; editing=null; ttSave(t);
+  const pairs=[]; for(let c=0;c<n;c++) pairs.push([hwKey(r,c)+'#none',hwKey(r,c),r,c]);
+  for(let i=r+1;i<=t.rows.length;i++) for(let c=0;c<n;c++) pairs.push([hwKey(i,c),hwKey(i-1,c),i-1,c]);
+  for(let c=0;c<n;c++) pairs.push([hwKey(t.rows.length,c)+'#none',hwKey(t.rows.length,c),t.rows.length,c]); // 最后一行的旧位置清掉
+  hwMove(pairs);
+}
 function swapRows(r1,r2){
   if(r1===r2){render();return;}
   const t=JSON.parse(JSON.stringify(ttData()));
@@ -2667,6 +2685,8 @@ document.addEventListener('click',async e=>{
     const msg='已复制完整版：课表 + '+n+' 条作业（'+undone+' 条没做）。去 Scriptable 点一下「课表」。';
     try{ navigator.clipboard.writeText(payload).then(()=>ok(msg),manual); }catch(err){ manual(); }
     return;}
+  const ri=e.target.closest('[data-rowins]'); if(ri){ insertRow(+ri.dataset.rowins); return; }
+  const rd=e.target.closest('[data-rowdel]'); if(rd){ deleteRow(+rd.dataset.rowdel); return; }
   const tr=e.target.closest('[data-ttrow]'); if(tr){const t=JSON.parse(JSON.stringify(ttData()));
     if(tr.dataset.ttrow==='add') t.rows.push(t.days.map(()=>''));
     else { while(t.rows.length>1 && t.rows[t.rows.length-1].every(x=>!x)) t.rows.pop(); }
