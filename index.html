@@ -1804,6 +1804,10 @@ function parseTTCell(text){
   if(!title&&detail){title=detail;detail='';}
   return {s,time,title:title||'课',detail};
 }
+const ONE_OFF=[
+  {date:'2026-09-30',s:660,time:'11:00',title:'去打印'},
+  {date:'2026-09-30',after:'сольфеджио',title:'做指纹卡'},
+];
 function todayClasses(){
   const t=ttData(), days=t.days||[], rows=t.rows||[];
   const idx=(new Date().getDay()+6)%7;
@@ -1813,6 +1817,19 @@ function todayClasses(){
     const p=parseTTCell((rows[r]||[])[idx]); if(!p) continue;
     p.hw=mem.hw[hwKey(r,idx)]||null; p.r=r; p.c=idx;
     items.push(p);
+  }
+  // 只在某一天出现的临时安排（date 是 YYYY-MM-DD；after 写课名就排在那节课下课之后）
+  const iso=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+  for(const o of ONE_OFF){
+    if(o.date!==iso) continue;
+    let s=o.s, time=o.time;
+    if(o.after){
+      const ref=items.find(i=>i.title.toLowerCase().includes(o.after.toLowerCase())); if(!ref) continue;
+      const m=ref.time.match(/–(\d\d):(\d\d)$/);
+      s=m?Number(m[1])*60+Number(m[2]):ref.s+90;
+      time=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')+'之后';
+    }
+    items.push({s,time,title:o.title,detail:o.detail||'',hw:null,r:-1,c:idx});
   }
   items.sort((a,b)=>a.s-b.s);
   return {name:days[idx],idx,items};
