@@ -324,6 +324,9 @@ label.pdone input{width:16px;height:16px;margin:0;accent-color:var(--ok)}
 .tname{font-size:13.5px;font-weight:500;line-height:1.45}
 .tdet{font-size:11.5px;color:var(--ink-3);margin-top:2px;line-height:1.45}
 .thw{margin-top:4px;font-size:11.5px;color:var(--red);line-height:1.45}
+.td.oneoff{border-style:dashed;border-color:var(--accent)} .td.oneoff .ttime{color:var(--accent)}
+.pladd{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap} .pladd input{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:7px 9px;font-size:13px} .pladd input[type=text]{flex:1;min-width:160px} .pladd input[type=date],.pladd input[type=time]{flex:0 0 auto} .pladd .btn{padding:7px 14px}
+.plup{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px} .plup .pchip b{cursor:pointer;color:var(--ink-3);margin-left:4px} .plup .pchip b:hover{color:var(--red)}
 .thw.ok{color:var(--green)}
 .tgo{background:none;border:0;color:var(--ink-3);font-size:17px;line-height:1;padding:0 4px;flex:none;border-radius:4px}
 .tgo:hover{color:var(--accent);background:var(--accent-soft)}
@@ -1517,7 +1520,7 @@ const CARS = {
 };
 
 // ---------- 存储：db 优先，没有就 localStorage ----------
-let db=null, mem={courses:{},notes:{},operas:{},words:{},classics:{},syllabus:{},hw:{},hist:{},shots:{},enwords:{},enlearn:{},timetable:null};
+let db=null, mem={courses:{},notes:{},operas:{},words:{},classics:{},syllabus:{},hw:{},hist:{},shots:{},enwords:{},enlearn:{},plans:{},timetable:null};
 const LS='study-notebook-v1';
 try{const s=localStorage.getItem(LS); if(s) mem=Object.assign(mem,JSON.parse(s));}catch(e){}
 function lsSave(){try{localStorage.setItem(LS,JSON.stringify(mem))}catch(e){}}
@@ -1535,7 +1538,7 @@ const store={
 
 // ── Supabase 存储层（网站版）──
 const SUPA={url:'https://jegpkwauertdhtclutea.supabase.co',key:'sb_publishable_WQmffm6R6Wrt4LvmEHGe1g_JHcmQ85W'};
-const SITE_BUILT='2026-09-29 09:03 UTC';
+const SITE_BUILT='2026-09-29 19:18 UTC';
 const SEED=null;
 // ── 登录（Supabase Auth，只有登录了才读得到数据库）──
 const AUTH_LS='study-notebook-auth';
@@ -1644,7 +1647,7 @@ function connect(){
   const el=document.getElementById('sync');
   askApi=null;                      // 网站版没有「问 Claude」
   db=makeSupaDb(); el.textContent='连接数据库…';
-  for(const col of ['courses','notes','operas','words','classics','syllabus','hw','hist','shots','enwords','enlearn']){
+  for(const col of ['courses','notes','operas','words','classics','syllabus','hw','hist','shots','enwords','enlearn','plans']){
     db.collection(col).onSnapshot(snap=>{ const o={}; snap.docs.forEach(x=>{o[x.id]=x.data()}); mem[col]=o; lsSave(); render(); },e=>{});
   }
   db.doc('timetable/main').onSnapshot(snap=>{ if(snap.exists){mem.timetable=snap.data(); lsSave(); if(!editing) render();} },e=>{});
@@ -1827,12 +1830,22 @@ function allUndoneHw(){
     .sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999'));
 }
 
+const localDate=d=>{const x=d||new Date(); return new Date(x.getTime()-x.getTimezoneOffset()*6e4).toISOString().slice(0,10);};
+function plansOn(date){ // 某天的临时安排，按时间排
+  return Object.entries(mem.plans||{}).filter(([,p])=>p&&p.date===date&&(p.text||'').trim())
+    .map(([id,p])=>{const m=(p.time||'').match(/^(\d{1,2}):(\d{2})$/); const s=m?+m[1]*60+ +m[2]:-1; return {id,s,e:s<0?-1:s+30,time:p.time||'',text:p.text.trim(),oneoff:true};})
+    .sort((a,b)=>a.s-b.s);
+}
+function upcomingPlans(){ const t=localDate(); return Object.entries(mem.plans||{}).filter(([,p])=>p&&p.date>=t).map(([id,p])=>({id,...p})).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)); }
 function renderHome(){
   const total=Object.keys(mem.courses).length, notes=Object.keys(mem.notes).length, seen=Object.values(mem.operas).filter(o=>o.done).length;
   const now0=new Date();
   const today=`${now0.getMonth()+1}月${now0.getDate()}日`;
   const td=todayClasses();
   const mins=now0.getHours()*60+now0.getMinutes();
+  const todayPlans=plansOn(localDate(now0));
+  const todayAll=[...td.items,...todayPlans.map(p=>({...p,s:p.s<0?1e5:p.s,title:p.text,detail:'',time:p.time||'今天'}))].sort((a,b)=>a.s-b.s);
+  const up=upcomingPlans();
   const undone=allUndoneHw();
   const todayStr=new Date(now0.getTime()-now0.getTimezoneOffset()*6e4).toISOString().slice(0,10);
   const doing=Object.entries(mem.courses).filter(([,c])=>c.status==='doing');
@@ -1856,8 +1869,12 @@ function renderHome(){
   <p class="lead">学校的课永远排第一。下面是今天的课、还欠着的作业、正在推进的东西——全是从各页自动汇来的，不用你再填。</p></div>
 
   <div class="grid2">
-    <div class="sec"><h3>今天的课 <small>${td.items.length?td.items.length+' 节':''}</small></h3>
-      ${td.items.length?`<div class="tdlist">${td.items.map(it=>{
+    <div class="sec"><h3>今天 <small>${td.items.length?td.items.length+' 节课':''}${todayPlans.length?' · '+todayPlans.length+' 件事':''}</small></h3>
+      ${todayAll.length?`<div class="tdlist">${todayAll.map(it=>{
+        if(it.oneoff){ const past=it.s<1e5&&mins>=it.e;
+          return `<div class="td oneoff ${past?'past':''}"><span class="ttime">${esc(it.time)}</span>
+            <div class="tmid"><div class="tname">${esc(it.text)}</div><div class="tdet">临时安排</div></div>
+            <button class="tgo" data-pldel="${it.id}" title="删掉">×</button></div>`; }
         const past=mins>=it.s+90, nowing=mins>=it.s&&mins<it.s+90;
         const h=it.hw&&(it.hw.text||'').trim()?it.hw:null;
         return `<div class="td ${past?'past':''} ${nowing?'nowing':''}">
@@ -1866,6 +1883,8 @@ function renderHome(){
             ${h?`<div class="thw ${h.done?'ok':''}">${h.done?'作业已完成':'作业：'+esc(h.text.split('\n')[0].slice(0,40))}</div>`:''}</div>
           <button class="tgo" data-go="tt" title="去课表">›</button></div>`}).join('')}</div>`
         :`<div class="empty">${td.idx>=(ttData().days||[]).length?'周日，没课。练箫、写字、看一部歌剧。':'今天没排课。'}</div>`}
+      <form class="pladd" id="pladd"><input type="date" id="pl-date" value="${localDate(now0)}" required><input type="time" id="pl-time"><input type="text" id="pl-text" placeholder="临时的事，比如：去打印、做指纹卡" maxlength="80" required><button class="btn" type="submit">加</button></form>
+      ${up.filter(p=>p.date!==localDate(now0)).length?`<div class="plup">${up.filter(p=>p.date!==localDate(now0)).slice(0,8).map(p=>`<span class="pchip">${esc(p.date.slice(5))}${p.time?' '+esc(p.time):''} ${esc(p.text)} <b data-pldel="${p.id}">×</b></span>`).join('')}</div>`:''}
     </div>
 
     <div class="sec"><h3>欠着的作业 <small>${undone.length?undone.length+' 项':'全清了'}</small></h3>
@@ -1963,7 +1982,7 @@ function renderCsWeek(){
 }
 
 // ── 备份 / 搬家 ──
-const BACKUP_COLS=['courses','notes','operas','words','classics','syllabus','hw','hist','shots','enwords','enlearn'];
+const BACKUP_COLS=['courses','notes','operas','words','classics','syllabus','hw','hist','shots','enwords','enlearn','plans'];
 function dumpAll(){
   const o={_app:'五年学习本',_at:now(),timetable:mem.timetable||null};
   for(const c of BACKUP_COLS) o[c]=mem[c]||{};
@@ -2609,8 +2628,15 @@ function hwCommit(close){
   store.set('hw',hwKey(r,c),{text,due,done,r,c,updatedAt:now()});
   return true;
 }
+document.addEventListener('submit',async e=>{
+  if(e.target.id!=='pladd') return; e.preventDefault();
+  const date=document.getElementById('pl-date').value, time=document.getElementById('pl-time').value, text=document.getElementById('pl-text').value.trim();
+  if(!date||!text) return;
+  await store.set('plans',uid(),{date,time,text,createdAt:now()});
+});
 document.addEventListener('click',async e=>{
   if(dragged||e.target.closest('[data-mv],[data-mvrow]')) return;
+  const pldel=e.target.closest('[data-pldel]'); if(pldel){ await store.del('plans',pldel.dataset.pldel); return; }
   if(editing && !e.target.closest('#tt-edit')){ ttCommit(); }
   // 作业窗口：点到外面就存上并关掉，但不拦住这一下点击本来要做的事
   if(openHw && !e.target.closest('.hwpanel') && !e.target.closest('[data-hw]')){
