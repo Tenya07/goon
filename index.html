@@ -158,6 +158,9 @@ textarea{resize:vertical;min-height:72px}
 .wkb .f ul{margin:0;padding-left:18px;font-size:13px;line-height:1.75;color:var(--ink-2)}
 .wkb .f.pass p{color:var(--ok)}
 .wkb .f.pass b{color:var(--ok)}
+.wkb .f.fast{border-left:2px solid var(--gold);padding-left:10px}
+.wkb .f.fast b{color:var(--gold)}
+.wkfast{flex:none;font-size:10.5px;color:var(--ink-3);white-space:nowrap;margin-left:4px}
 
 .wkb .f.mine{margin-top:11px;padding-top:10px;border-top:1px dashed var(--line)}
 .wkb .f.mine b{color:var(--gold)}
@@ -883,6 +886,8 @@ const SYLLABI = {
   name:'CS50P · 哈佛《Python 编程入门》',unit:'周',
   sub:'10 讲 · 每讲配一套 problem set · 机器判题 · 免费 · 对应 UCC CS1117',
   how:[
+   '<b>加速版 · 10 周学完（10/5 开始，12/13 结课）：</b>每周大约 7 小时——工作日每天 1 小时，周末挑一天 2 小时。一周一讲，每讲除了 problem set 还配一个给自己用的小练习（每周展开里写着）。第 9 周开始顺带 HTML/CSS，对应 UCC 的 CS1115。',
+   '<b>加速版的规矩：</b>① problem set 自己写，不看答案；② 卡住 20 分钟就问，别硬扛一晚上；③ 在学校用 iPad 看讲座，回家用电脑写代码；④ 允许落后一周，落后两周就把小练习砍掉、只做 problem set。',
    '<b>一周一讲，固定动作四步：</b>① 看讲座录像（每讲 1.5–3 小时，可以分两三次看完，官网有英文字幕，YouTube 上有中文字幕版）；② 边看边跟着敲代码，不要只看；③ 做这一讲的 problem set；④ 每题在终端跑 <span class="term">check50</span>，全绿才算过，再进下一讲。',
    '<b>怎么交作业：</b>课程给你一个网页版的编程环境 <span class="term">cs50.dev</span>（VS Code，装在浏览器里，不用配任何东西——这一点正好和你「电脑」计划里的 VS Code 是同一个界面）。写完在终端敲 <span class="term">check50 cs50/problems/2022/python/题目名</span> 判题，敲 <span class="term">submit50</span> 提交。',
    '<b>判题是这门课的灵魂。</b>check50 会拿几十组输入喂你的程序，比对输出。全绿才算过——这就是大学里「作业及格」的标准，别自己觉得差不多就跳过。',
@@ -890,70 +895,70 @@ const SYLLABI = {
    '<b>卡住了怎么办：</b>先看错误信息最后一行（它一般直说哪行、什么错）→ 用 print 把中间值打出来看 → 官网每讲下面有 shorts 短视频讲单个概念 → 还不行就把代码和报错贴到本页最下面的「问 Claude」。不要直接搜答案，那等于没上这门课。',
   ],
   weeks:[
-   {t:'第 0 周 · 函数与变量',en:'Functions, Variables',
+   {t:'第 0 周 · 函数与变量',fast:'已完成',fastx:'—',en:'Functions, Variables',
     goal:'能写出一个「读入一句话、处理一下、打印出来」的程序。这是所有程序的最小骨架。',
     watch:'Lecture 0（约 2 小时）。这一讲从零开始，假设你没写过一行代码。',
     learn:['print() 打印，input() 读入','变量、赋值、字符串与数字的区别','int() float() str() 类型转换——新手最常栽在这里','字符串方法 strip() lower() title() replace()','f-string 格式化：f"你好，{name}"','round() 保留小数','自己定义函数 def、参数、return','注释怎么写、为什么要写'],
     pset:'Problem Set 0（5 题）：Indoor Voice · Playback Speed · Making Faces · Einstein · Tip Calculator',
     tip:'Einstein 那题要算 E=mc²，c 是 300000000——注意输出必须是整数。Tip Calculator 要处理 $ 和 % 符号，用 replace() 去掉再转数字。',
     pass:'5 题全部 check50 全绿。'},
-   {t:'第 1 周 · 条件判断',en:'Conditionals',
+   {t:'第 1 周 · 条件判断',fast:'10/5–10/11',fastx:'小程序「今天还能花多少钱」：输入剩下的钱和离发钱还有几天，算出每天能花多少，超了就提醒。',en:'Conditionals',
     goal:'能让程序「分情况处理」——这个是这样，那个是那样。',
     watch:'Lecture 1（约 1.5 小时）。',
     learn:['if / elif / else','比较运算 == != > < >= <=','and or not','== 和 = 的区别（这是新手第一大坑）','in 关键字判断「在不在里面」','match 语句（Python 3.10 起）','布尔值 True / False'],
     pset:'Problem Set 1（5 题）：Deep Thought · Home Federal Savings Bank · File Extensions · Math Interpreter · Meal Time',
     tip:'Meal Time 要把 "7:30" 这样的时间转成小数再比较区间——会用到 split(":")。File Extensions 要处理大小写和前后空格。',
     pass:'5 题全部 check50 全绿。'},
-   {t:'第 2 周 · 循环',en:'Loops',
+   {t:'第 2 周 · 循环',fast:'10/12–10/18',fastx:'用循环把一周课表一天一天打印出来。',en:'Loops',
     goal:'能让程序把一件事重复做很多遍，或者把一串东西挨个处理一遍。',
     watch:'Lecture 2（约 2 小时）。',
     learn:['while 循环、for 循环','range()','break 跳出、continue 跳过这一轮','遍历字符串的每个字符','列表 list 入门：创建、下标、append','len() 取长度','嵌套循环','写循环时怎么避免死循环'],
     pset:'Problem Set 2（5 题）：camelCase · Coke Machine · Just setting up my twttr · Vanity Plates · Nutrition Facts',
     tip:'Vanity Plates 是这一套里最难的——车牌规则有五六条，建议先在纸上把规则一条条列出来，每条写成一个 if，再合起来。',
     pass:'5 题全部 check50 全绿。这周做完，你已经能写出有用的小工具了。'},
-   {t:'第 3 周 · 异常处理',en:'Exceptions',
+   {t:'第 3 周 · 异常处理',fast:'10/19–10/25',fastx:'把第 1 周的花钱小程序改成：输错（比如输了字母）不崩，提示重来。',en:'Exceptions',
     goal:'能让程序在用户乱输入的时候不崩溃，而是好好提示重来。',
     watch:'Lecture 3（约 1.5 小时）。',
     learn:['报错分几种：SyntaxError、ValueError、NameError','try / except','except ValueError 指定抓哪种错','else 和 finally','用 while True + try 做「输错就重问」','raise 主动抛错','pass 关键字'],
     pset:'Problem Set 3（4 题）：Fuel Gauge · Felipe\'s Taqueria · Grocery List · Outdated',
     tip:'Grocery List 和 Outdated 要按 Ctrl+D 结束输入——那会触发 EOFError，得抓住它。这是很多人第一次卡住的地方。',
     pass:'4 题全部 check50 全绿。'},
-   {t:'第 4 周 · 用别人写好的库',en:'Libraries',
+   {t:'第 4 周 · 用别人写好的库',fast:'10/26–11/1',fastx:'用 random 做一个「随机出调号」小测：程序说一个调，你答几个升降号。',en:'Libraries',
     goal:'学会「不自己造轮子」——用现成的库，以及把自己的代码做成库给别人用。这一讲的思路最重要。',
     watch:'Lecture 4（约 2 小时）。',
     learn:['import 的几种写法：import x / from x import y','标准库：random、statistics、sys','sys.argv 命令行参数、sys.exit','pip install 装第三方库','requests 库：从网上取数据（JSON）','自己写模块，if __name__ == "__main__" 是什么意思','怎么读库的官方文档——这是本讲最值钱的技能'],
     pset:'Problem Set 4（6 题）：Emojize · Frank, Ian and Glen\'s Letters · Adieu, Adieu · Guessing Game · Little Professor · Bitcoin Price Index',
     tip:'Bitcoin Price Index 要联网调 CoinDesk 的接口取 JSON——第一次做会觉得很神奇，也是第一次接触「程序和互联网说话」。Emojize 和 figlet 要先 pip install。',
     pass:'6 题全部 check50 全绿。难度从这周开始上一个台阶，慢一点没关系。'},
-   {t:'第 5 周 · 单元测试',en:'Unit Tests',
+   {t:'第 5 周 · 单元测试',fast:'11/2–11/8',fastx:'给前几周自己写的小程序补测试。',en:'Unit Tests',
     goal:'学会写「测自己代码的代码」。听起来多此一举，但这是职业程序员和业余的分水岭。',
     watch:'Lecture 5（约 1.5 小时）。',
     learn:['assert 断言','pytest：怎么装、怎么跑','测试函数命名规则 test_xxx','怎么设计测试用例：正常值、边界值、坏值','把测试单独放一个文件','测试驱动开发的基本思路'],
     pset:'Problem Set 5（3 题）：Testing my twttr · Back to the Bank · Refueling',
     tip:'这周是回头给前几周写过的程序补测试——所以顺便复习了。题少，但概念要想通：你不是在写新功能，是在证明旧功能没坏。',
     pass:'3 题全部 check50 全绿。'},
-   {t:'第 6 周 · 读写文件',en:'File I/O',
+   {t:'第 6 周 · 读写文件',fast:'11/9–11/15',fastx:'记账小工具：每笔花销存进 CSV，下次打开还在，能算出本月总共花了多少。',en:'File I/O',
     goal:'能让程序把结果存下来、把已有的文件读进来处理。到这里程序才真正有用。',
     watch:'Lecture 6（约 2 小时）。',
     learn:['open()、read()、readlines()、write()','with open(...) as f 的写法和为什么要这么写','读写模式 r / w / a','CSV 文件：csv.reader、csv.DictReader、csv.DictWriter','用 PIL（Pillow）处理图片','sorted() 排序，key= 参数','列表推导式入门'],
     pset:'Problem Set 6（4 题）：Lines of Code · Pizza Py · Scourgify · CS50 P-Shirt',
     tip:'Scourgify 是整理一份乱的 CSV——和你在家里公司整理课酬表是同一件事，做的时候可以想着那张表。CS50 P-Shirt 要用 Pillow 把两张图叠起来。',
     pass:'4 题全部 check50 全绿。这周学完，你已经能写出能替你干活的脚本了。'},
-   {t:'第 7 周 · 正则表达式',en:'Regular Expressions',
+   {t:'第 7 周 · 正则表达式',fast:'11/16–11/22',fastx:'从银行短信 / 账单文字里用正则把金额和日期提取出来。',en:'Regular Expressions',
     goal:'学会用一行「模式」去匹配、提取、校验文本。学完你看邮箱地址、电话、日期的眼光会变。',
     watch:'Lecture 7（约 2 小时）。这一讲信息密度最高。',
     learn:['re 模块：search、match、fullmatch、sub、split','元字符：. * + ? ^ $ [] {} |','字符类 \\d \\w \\s 和它们的大写反义','贪婪与非贪婪','分组 () 和用 group(1) 取出来','re.IGNORECASE','怎么把一条复杂正则拆开来读'],
     pset:'Problem Set 7（5 题）：NUMB3RS · Watch on YouTube · Working 9 to 5 · Regular, um, Expressions · Response Validation',
     tip:'不要想一口气写出完整正则。先写能匹配最简单情况的，用 regex101.com 一边试一边加条件。Working 9 to 5 是这套里最难的。',
     pass:'5 题全部 check50 全绿。'},
-   {t:'第 8 周 · 面向对象',en:'Object-Oriented Programming',
+   {t:'第 8 周 · 面向对象',fast:'11/23–11/29',fastx:'写一个「学生」类，给家里网课用：名字、课时、单价，能算出该收多少。',en:'Object-Oriented Programming',
     goal:'学会自己造「类型」——把数据和操作它的方法打包在一起。这是从「写脚本」到「写程序」的转折。',
     watch:'Lecture 8（约 2.5 小时）。概念最抽象的一讲。',
     learn:['class 怎么定义','__init__ 构造函数、self 是什么','实例属性和方法','__str__ 让对象能好好打印','@property、getter 和 setter、属性校验','类方法 @classmethod、静态方法','继承：子类、super()','什么时候该用类，什么时候不该用'],
     pset:'Problem Set 8（3 题）：Seasons of Love · Cookie Jar · CS50 Shirtificate',
     tip:'self 是最容易懵的地方。一句话理解：self 就是「这一个具体的对象自己」。Seasons of Love 要算日期差还要把数字念成英文单词（用 inflect 库）。',
     pass:'3 题全部 check50 全绿。'},
-   {t:'第 9 周 · 收尾与期末项目',en:'Et Cetera · Final Project',
+   {t:'第 9 周 · 收尾与期末项目',fast:'11/30–12/13（两周）',fastx:'第一周：Lecture 9 + 期末项目开工 + 开始 freeCodeCamp 网页入门（HTML/CSS，对应 CS1115）。第二周：把课表和记账合成一个期末项目，写测试、录 3 分钟视频、交。',en:'Et Cetera · Final Project',
     goal:'补上几个常用工具，然后独立做一个属于你自己的程序——没有标准答案，没有 check50，全靠自己。',
     watch:'Lecture 9（约 1.5 小时）。',
     learn:['集合 set、字典 dict 的进阶用法','global 关键字和为什么少用','常量的约定写法','类型提示 type hints','docstring 文档字符串','argparse 做正经的命令行参数','解包 *args 和 **kwargs'],
@@ -1969,7 +1974,7 @@ function renderCsWeek(){
    <div class="csw"><b>该碰哪一门</b>${line1}</div>
    <div class="csw"><b>几小时</b>
      <span class="v">${hm(mins)} <em>/ 本周目标</em>
-       <select data-cstarget="1">${[120,180,240,300,360].map(v=>`<option value="${v}" ${v===target?'selected':''}>${v/60} 小时</option>`).join('')}</select>
+       <select data-cstarget="1">${[120,180,240,300,360,420].map(v=>`<option value="${v}" ${v===target?'selected':''}>${v/60} 小时</option>`).join('')}</select>
      </span>
      <span class="csbar"><i style="width:${pct}%"></i></span>
      <button class="mini" data-cslog="30">+30 分</button>
@@ -2218,6 +2223,7 @@ function renderSyl(id,syl){
      return `<div class="wk ${d[i]?'ok':''} ${open?'open':''}">
       <div class="wkt"><input type="checkbox" id="wk-${id}-${i}" ${d[i]?'checked':''} data-wkdone="${id}:${i}">
         <label class="wl" for="wk-${id}-${i}">${esc(w.t)}${w.en?`<span>${esc(w.en)}</span>`:''}</label>
+        ${w.fast&&w.fast!=='已完成'&&!d[i]?`<span class="wkfast" title="加速版计划">${esc(w.fast)}</span>`:''}
         ${(wt[i]&&!d[i]&&!open)?'<span class="wkhas seen" title="讲座看完了，作业还没做">讲座✓</span>':''}
         ${(nt[i]||'').trim()&&!open?`<span class="wkhas" title="${esc((nt[i]||'').trim().slice(0,60))}">笔记</span>`:''}
         <button class="wkx" data-wk="${id}:${i}">${open?'收起':'展开'}</button></div>
@@ -2227,6 +2233,7 @@ function renderSyl(id,syl){
           <label class="${d[i]?'on':''}" for="wkd-${id}-${i}"><input type="checkbox" id="wkd-${id}-${i}" ${d[i]?'checked':''} data-wkdone="${id}:${i}">作业做完了</label>
           <span class="hint">${d[i]?'这周过了。':wt[i]?'差作业。':'还没开始。'}</span>
         </div>
+        ${w.fast&&w.fastx&&w.fastx!=='—'?`<div class="f fast"><b>加速版 · ${esc(w.fast)}</b><p>${esc(w.fastx)}</p></div>`:''}
         ${w.goal?`<div class="f"><b>这周要会什么</b><p>${esc(w.goal)}</p></div>`:''}
         ${w.watch?`<div class="f"><b>看什么</b><p>${esc(w.watch)}</p></div>`:''}
         ${(w.learn||[]).length?`<div class="f"><b>具体知识点</b><ul>${w.learn.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
