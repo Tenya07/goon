@@ -169,6 +169,7 @@ textarea{resize:vertical;min-height:72px}
 .cspn{font-size:13px;font-weight:600}
 .cspw{font-size:11.5px;color:var(--ink-3);line-height:1.35}
 .cspe{font-size:12px;color:var(--ink-3)}
+.cslive{font-size:11.5px;color:var(--gold);margin-top:4px;line-height:1.35}
 .cspedit .csprow{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap}
 .cspedit .csprow input{width:130px}
 .cspedit .csprow select{width:auto}
@@ -1893,7 +1894,7 @@ function renderTT(){
      return `<td class="cell ${v?'':'blank'} ${c===today?'today':''} ${cls}" data-cell="${r}:${c}" tabindex="0">
        <button class="mvgrip" data-mv="${r}:${c}" title="按住拖到别的格子，两格内容对调（作业一起走）">⠿</button>
        <button class="hwdot ${cls||'none'} ${openHw===r+':'+c?'on':''}" data-hw="${r}:${c}" title="${hasHw?(h.done?'作业已完成':'作业没做完'):'写作业'}">${hasHw?(h.done?'✓':'!'):'+'}</button>
-       ${cellHTML(v)}
+       ${cellHTML(v)}${csKindOf(v)?`<div class="cslive">${esc(csTrackOn(csKindOf(v)).name)} · ${esc(csTrackOn(csKindOf(v)).wk)}</div>`:''}
        ${hasHw?`<div class="hwchip ${h.done?'ok':''}">${h.done?'已完成':'作业'}${h.due?' · '+esc(h.due.slice(5))+' 前':''}</div>`:''}
      </td>`;
   }).join('')}</tr>`).join('')}
@@ -1937,6 +1938,7 @@ function todayClasses(){
   for(let r=0;r<rows.length;r++){
     const p=parseTTCell((rows[r]||[])[idx]); if(!p) continue;
     p.hw=mem.hw[hwKey(r,idx)]||null; p.r=r; p.c=idx;
+    const ck=csKindOf((rows[r]||[])[idx]); if(ck){ const tr=csTrackOn(ck); p.detail=tr.name+' · '+tr.wk; }
     items.push(p);
   }
   items.sort((a,b)=>a.s-b.s);
@@ -2013,14 +2015,19 @@ function csSpan(t){ const m=String(t||'').match(TIME_RE); if(!m) return null;
   const s=Number(m[1])*60+Number(m[2]); const e=m[3]?Number(m[3])*60+Number(m[4]):s+60; return {s,e:e>s?e:s+60}; }
 function fastRange(f){ const m=String(f||'').match(/(\d{1,2})\/(\d{1,2})\s*[–-]\s*(\d{1,2})\/(\d{1,2})/); if(!m) return null;
   const p=n=>String(n).padStart(2,'0'); return ['2026-'+p(m[1])+'-'+p(m[2]),'2026-'+p(m[3])+'-'+p(m[4])]; }
-function csTrackOn(k,date){
-  const tr=CS_TRACKS[k]; if(!tr) return {name:'自学',wk:''};
-  const seg=tr.seg.find(x=>date<=x.to);
-  if(!seg) return {name:'下学期再排',wk:'12/14 以后：HTML/CSS → JavaScript',id:null};
-  const syl=SYLLABI[seg.id];
-  const ws=syl.weeks.filter(w=>{const r=fastRange(w.fast); return r&&date>=r[0]&&date<=r[1];}).map(w=>w.t);
-  return {name:syl.name.split(' · ')[0],wk:ws.length?ws.join(' + '):(date<'2026-10-05'?'10/5 正式开始，这几天可以先预习':''),id:seg.id};
+const CS_ORDER={main:['y1-cs50p','y1-fcc-web','y1-fcc-js'],side:['y1-cs50t','y1-cs50sql']};
+function csTrackOn(k,date){ // 按打勾进度：这条线下一讲该学什么
+  date=date||localDate(new Date());
+  for(const id of (CS_ORDER[k]||[])){
+    const syl=SYLLABI[id]; if(!syl) continue;
+    const d=sylDone(id), i=syl.weeks.findIndex((_,j)=>!d[j]); if(i<0) continue;
+    const w=syl.weeks[i], r=fastRange(w.fast);
+    const note=(r&&date>r[1])?'（按计划已经该学完，加油追）':(date<'2026-10-05'?'（10/5 正式开始）':'');
+    return {name:syl.name.split(' · ')[0],wk:'下一讲：'+w.t+note,id};
+  }
+  return {name:'这条线学完了',wk:'回来找 Claude 排下一门',id:null};
 }
+function csKindOf(text){ const t=String(text||''); if(!/自学 ·/.test(t)) return null; return /副线/.test(t)?'side':'main'; }
 function csToday(){
   const d0=new Date(), idx=(d0.getDay()+6)%7, date=localDate(d0);
   if(((mem.hist.autoadd||{}).ids||{}).ttrow && idx<(ttData().days||[]).length) return [];
@@ -2047,7 +2054,7 @@ function renderCsPlan(){
       <button class="x" data-csp="del:${j}" title="删掉这一段">×</button></div>`).join('')}
     <div class="actions" style="justify-content:flex-start;gap:8px;margin-top:8px"><button class="btn ghost" data-csp="add">加一段</button><button class="btn ghost" data-csp="reset">恢复默认</button><button class="btn" data-csp="edit">改好了</button></div></div>`:'';
   return `<div class="sec csplan"><h3>自学课表 <small>按 UCC 强度：两门并行，每门每周约 8 小时 · 主线 ${h(sum.main)} 小时 · 副线 ${h(sum.side)} 小时</small></h3>
-    <p class="lead" style="margin:0 0 10px">UCC 一门 5 学分的课，一学期大约 100–125 小时，摊到 12 周就是每周 8 小时左右（上课 3–4 小时，剩下是作业）。这里排了两门：主线 CS50P（10/5–12/13）；副线先学 CS50T（10/5–10/25），再学 CS50 SQL（10/26–12/13）。每一格会自动显示那天该学哪一讲。学校的事排第一，学校有事就把自学挪走，不用硬撑。</p>
+    <p class="lead" style="margin:0 0 10px">UCC 一门 5 学分的课，一学期大约 100–125 小时，摊到 12 周就是每周 8 小时左右（上课 3–4 小时，剩下是作业）。这里排了两门：主线 CS50P（10/5–12/13）；副线先学 CS50T（10/5–10/25），再学 CS50 SQL（10/26–12/13）。每一格按你在「电脑」页打的勾，自动显示这条线的下一讲；一门学完自动换下一门（主线：CS50P → 网页 HTML/CSS → JavaScript；副线：CS50T → SQL）。学校的事排第一，学校有事就把自学挪走，不用硬撑。</p>
     <div class="cspgrid">${grid}</div>
     ${csPlanEdit?edit:'<div class="actions" style="justify-content:flex-start;margin-top:10px"><button class="btn ghost" data-csp="edit">改时间</button></div>'}
   </div>`;
