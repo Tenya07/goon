@@ -1757,7 +1757,7 @@ function makeSupaDb(){
         for(let i=0;i<rows.length;i+=100) await upsert(rows.slice(i,i+100));
         await pull(true); syncMsg('第一次连上，已把 '+rows.length+' 条数据搬进你的数据库');
       }
-      try{ ensureAutoCourses(); ensureStudyRow(); }catch(e){ console.warn(e); }
+      try{ ensureAutoCourses(); ensureSunday(); ensureStudyRow(); }catch(e){ console.warn(e); }
       schedule(15000);
     },
   };
@@ -1978,6 +1978,21 @@ function ensureAutoCourses(){
     done[id]=true;
   }
   store.set('hist','autoadd',{ids:done});
+}
+function ensureSunday(){
+  const done=Object.assign({},(mem.hist.autoadd||{}).ids||{});
+  if(done.sunday||!mem.timetable) return;
+  const t=JSON.parse(JSON.stringify(mem.timetable)), days=(t.days||[]).slice();
+  if(days.length===6){
+    const en=/[a-z]/i.test(days[0]||'');
+    days.push(en?'周日 sunday':'周日');
+    t.days=days;
+    const sun=csBlocks().filter(b=>Number(b.d)===6).map(b=>b.t+' 自学 · '+(b.k==='main'?'CS50P（主线）':'CS50T → SQL（副线）')).join('\n');
+    t.rows=(t.rows||[]).map(r=>{const x=(r||[]).slice(0,6); while(x.length<6)x.push('');
+      x.push(x.some(c=>/自学 ·/.test(c||''))?sun:''); return x;});
+    ttSave(t);
+  }
+  done.sunday=true; store.set('hist','autoadd',{ids:done});
 }
 function ensureStudyRow(){
   const done=Object.assign({},(mem.hist.autoadd||{}).ids||{});
