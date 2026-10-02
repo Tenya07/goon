@@ -1757,7 +1757,7 @@ function makeSupaDb(){
         for(let i=0;i<rows.length;i+=100) await upsert(rows.slice(i,i+100));
         await pull(true); syncMsg('第一次连上，已把 '+rows.length+' 条数据搬进你的数据库');
       }
-      try{ ensureAutoCourses(); }catch(e){ console.warn(e); }
+      try{ ensureAutoCourses(); ensureStudyRow(); }catch(e){ console.warn(e); }
       schedule(15000);
     },
   };
@@ -1979,6 +1979,19 @@ function ensureAutoCourses(){
   }
   store.set('hist','autoadd',{ids:done});
 }
+function ensureStudyRow(){
+  const done=Object.assign({},(mem.hist.autoadd||{}).ids||{});
+  if(done.ttrow||!mem.timetable) return;
+  const t=JSON.parse(JSON.stringify(mem.timetable)), days=t.days||[];
+  const names={main:'CS50P（主线）',side:'CS50T → SQL（副线）'};
+  const row=days.map((_,i)=>csBlocks().filter(b=>Number(b.d)===i)
+    .sort((a,b)=>((csSpan(a.t)||{s:0}).s-(csSpan(b.t)||{s:0}).s))
+    .map(b=>b.t+' 自学 · '+(names[b.k]||'自学')).join('\n'));
+  if(!row.some(Boolean)) return;
+  t.rows=(t.rows||[]).concat([row]);
+  ttSave(t);
+  done.ttrow=true; store.set('hist','autoadd',{ids:done});
+}
 let csPlanEdit=false;
 function csBlocks(){ const b=(mem.hist.csplan||{}).blocks; return Array.isArray(b)?b:CS_BLOCKS_DEF; }
 function csSpan(t){ const m=String(t||'').match(TIME_RE); if(!m) return null;
@@ -1995,6 +2008,7 @@ function csTrackOn(k,date){
 }
 function csToday(){
   const d0=new Date(), idx=(d0.getDay()+6)%7, date=localDate(d0);
+  if(((mem.hist.autoadd||{}).ids||{}).ttrow && idx<(ttData().days||[]).length) return [];
   return csBlocks().map((b,i)=>({b,i})).filter(x=>Number(x.b.d)===idx).map(({b})=>{
     const sp=csSpan(b.t); if(!sp) return null; const tr=csTrackOn(b.k,date);
     return {cs:true,s:sp.s,e:sp.e,time:b.t,title:'自学 · '+tr.name,detail:tr.wk};
