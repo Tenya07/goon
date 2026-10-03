@@ -1667,7 +1667,10 @@ let sess=null; try{ sess=JSON.parse(localStorage.getItem(AUTH_LS)||'null'); }cat
 function saveSess(s){ sess=s; try{ if(s) localStorage.setItem(AUTH_LS,JSON.stringify(s)); else localStorage.removeItem(AUTH_LS); }catch(e){} }
 function pickSess(j){ return {access_token:j.access_token,refresh_token:j.refresh_token,expires_at:j.expires_at,email:j.user&&j.user.email}; }
 async function authPost(q,body){
-  const r=await fetch(SUPA.url+'/auth/v1/token?grant_type='+q,{method:'POST',headers:{apikey:SUPA.key,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const ac=new AbortController(), to=setTimeout(()=>ac.abort(),20000);
+  let r; try{ r=await fetch(SUPA.url+'/auth/v1/token?grant_type='+q,{method:'POST',headers:{apikey:SUPA.key,'Content-Type':'application/json'},body:JSON.stringify(body),signal:ac.signal}); }
+  catch(e){ const x=new Error('网络'); x.code=e.name==='AbortError'?'超时，可能要开 VPN':'网络'; throw x; }
+  finally{ clearTimeout(to); }
   let j={}; try{ j=await r.json(); }catch(e){}
   if(!r.ok){ const e=new Error(j.error_description||j.msg||j.message||('HTTP '+r.status)); e.code=r.status; throw e; }
   return j;
@@ -1700,9 +1703,12 @@ function showLogin(msg){
 function supaHeaders(extra){ return Object.assign({apikey:SUPA.key,Authorization:'Bearer '+(sess?sess.access_token:SUPA.key),'Content-Type':'application/json'},extra||{}); }
 let supaOffset=0; // 服务器时间 - 本机时间（毫秒）
 async function supaFetch(path,opt,retried){
-  if(!(await ensureAuth())){ showLogin(); const e=new Error('未登录'); e.code=401; throw e; }
+  if(!(await ensureAuth())){ if(sess){ const e=new Error('网络'); e.code='连不上，可能要开 VPN'; throw e; } showLogin(); const e=new Error('未登录'); e.code=401; throw e; }
   if(opt&&opt.headers) opt.headers.Authorization='Bearer '+sess.access_token;
-  const r=await fetch(SUPA.url+path,opt);
+  const ac=new AbortController(), to=setTimeout(()=>ac.abort(),20000);
+  let r; try{ r=await fetch(SUPA.url+path,Object.assign({},opt,{signal:ac.signal})); }
+  catch(e){ const x=new Error(e.name==='AbortError'?'超时':'网络'); x.code=e.name==='AbortError'?'超时，可能要开 VPN':'网络'; throw x; }
+  finally{ clearTimeout(to); }
   const d=r.headers.get('date'); if(d){ const t=Date.parse(d); if(t) supaOffset=t-Date.now(); }
   if(r.status===401&&!retried&&await authRefresh()) return supaFetch(path,opt,true);
   if(r.status===401){ saveSess(null); showLogin('登录过期了，再登一次'); }
@@ -1749,7 +1755,9 @@ function makeSupaDb(){
       async delete(){ if(cache[col]) delete cache[col][id]; await upsert([{col,id,data:null,updated_at:supaNow()}]); },
     }; },
     async start(){
-      const n=await pull(true);
+      let n;
+      try{ n=await pull(true); }
+      catch(e){ syncMsg('⚠ 连不上数据库（'+(e.code||'网络')+'），10 秒后自动重试…'); setTimeout(()=>dbo.start().catch(()=>{}),10000); return; }
       if(n===0&&SEED){ // 空库：把出厂那份灌进去
         const rows=[]; const t=supaNow();
         for(const c of Object.keys(SEED)){ if(c==='timetable'||!SEED[c]) continue;
