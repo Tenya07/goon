@@ -1746,6 +1746,29 @@ function makeSupaDb(){
     await supaFetch('/rest/v1/docs',{method:'POST',headers:supaHeaders({Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(rows)});
     schedule(1500);
   }
+
+  // One-time vocabulary from the 2026-10-13 chat; preserve existing words and learning state.
+  async function addChatVocabulary(){
+    const migration='chat-vocab-2026-10-13';
+    if(cache.enlearn&&cache.enlearn[migration]&&cache.enlearn[migration].done) return;
+    const additions=[
+      {w:'bugged',zh:'出 bug 了；功能不正常',note:'bugged 不是 bagged。卡顿通常说 lagging；功能异常说 bugged。',ex:'The game is bugged. — 这个游戏出 bug 了。'},
+      {w:'lagged',zh:'刚才卡了；lag 的过去式',note:'描述已经发生的卡顿。',ex:'I lagged for a second. — 我刚才卡了一下。'},
+      {w:'lagging',zh:'正在卡顿；反应慢',note:'描述现在正在发生的卡顿。',ex:'My game is lagging. — 我的游戏正在卡顿。'},
+      {w:'frozen',zh:'卡死了；没有反应',note:'画面或程序停住不动。',ex:'My screen is frozen. — 我的屏幕卡死了。'},
+      {w:'corner',zh:'角落；拐角',note:'正确拼写是 corner，不是 cornor。',ex:"He's in the corner. — 他在角落里。"}
+    ];
+    const known=new Set(Object.values(cache.enwords||{}).filter(Boolean).map(d=>enKey(d.w)));
+    const timestamp=supaNow();
+    const rows=additions.filter(d=>!known.has(enKey(d.w))).map(d=>({
+      col:'enwords',id:'chat-20261013-'+d.w,
+      data:Object.assign({},d,{src:'聊天里学的 · 游戏与网络',learned:false,createdAt:timestamp}),updated_at:timestamp
+    }));
+    // Commit the words and completion flag together, so refreshes and manual deletions stay safe.
+    rows.push({col:'enlearn',id:migration,data:{done:true,added:rows.length},updated_at:timestamp});
+    await upsert(rows);
+    await pull(true);
+  }
   const split=p=>{ const i=p.indexOf('/'); return [p.slice(0,i),p.slice(i+1)]; };
   const dbo={
     collection(col){ return { onSnapshot(cb,err){ subs.push({col,cb,err}); if(cache[col]) cb(snapFor(col)); } }; },
@@ -1766,6 +1789,7 @@ function makeSupaDb(){
         for(let i=0;i<rows.length;i+=100) await upsert(rows.slice(i,i+100));
         await pull(true); syncMsg('第一次连上，已把 '+rows.length+' 条数据搬进你的数据库');
       }
+      try{ await addChatVocabulary(); }catch(e){ console.warn('Chat vocabulary could not be saved; retry on next login.',e); }
       try{ ensureAutoCourses(); ensureSunday(); ensureStudyRow(); }catch(e){ console.warn(e); }
       schedule(15000);
     },
