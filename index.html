@@ -1,5 +1,6 @@
 <!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080b12"><style>[hidden]{display:none!important}</style>
 <title>五年学习本</title>
+<link rel="stylesheet" href="notebook.css?v=20261108">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap">
 <style>
 :root{
@@ -617,6 +618,8 @@ body.locked .shell{visibility:hidden}
   <main class="main" id="main"></main>
 </div>
 
+<script src="knowledge.js?v=20261108"></script>
+<script src="notebook.js?v=20261108"></script>
 <script>
 // ---------- 静态内容（来自五年学习表） ----------
 const SUBJECTS = [
@@ -1852,18 +1855,19 @@ function growAll(){ document.querySelectorAll('textarea.grow').forEach(autoGrow)
 
 function render(){
   // 记住正在输入的框和光标位置，重画后放回去
-  const ae=document.activeElement; const keep=ae&&ae.id&&ae.id!=='tt-edit'&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)?{id:ae.id,s:ae.selectionStart,e:ae.selectionEnd}:null;
+  const ae=document.activeElement; const keep=ae&&ae.id&&ae.id!=='tt-edit'&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)?{id:ae.id,s:ae.selectionStart,e:ae.selectionEnd,top:ae.scrollTop}:null;
   const nav=document.getElementById('nav');
   nav.innerHTML=SUBJECTS.map(s=>{
     const n=s.id==='home'?'':(bySubj('courses',s.id).length+bySubj('notes',s.id).length)||'';
     return `<button class="${s.id===cur?'on':''}" data-go="${s.id}"><span class="k">${s.k}</span>${esc(s.name)}<span class="cnt">${n}</span></button>`;
   }).join('');
   const main=document.getElementById('main');
+  main.classList.toggle('notebook-main',cur==='computer');
   main.innerHTML= cur==='home'?renderHome():cur==='tt'?renderTT():renderSubject(SUBJECTS.find(s=>s.id===cur));
   restoreDraft();
   growAll();
   if(editing){const ta=document.getElementById('tt-edit'); if(ta&&document.activeElement!==ta){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);}}
-  else if(keep){const el=document.getElementById(keep.id); if(el){el.focus({preventScroll:true}); try{if(keep.s!=null&&el.setSelectionRange)el.setSelectionRange(keep.s,keep.e);}catch(e){}}}
+  else if(keep){const el=document.getElementById(keep.id); if(el){el.focus({preventScroll:true}); try{if(keep.s!=null&&el.setSelectionRange)el.setSelectionRange(keep.s,keep.e);el.scrollTop=keep.top;}catch(e){}}}
 }
 
 function cellHTML(s){
@@ -2323,6 +2327,7 @@ function renderBackup(){
 }
 
 function renderSubject(s){
+  if(s.id==='computer'&&Notebook.mode!=='courses') return Notebook.render();
   const courses=bySubj('courses',s.id), notes=bySubj('notes',s.id);
   const stName={want:'想学',doing:'在学',done:'学完'};
   let extra='';
@@ -2337,7 +2342,7 @@ function renderSubject(s){
   if(s.id==='poem') extra=renderStory();
   if(s.id==='driving') extra=renderCars();
   const top = s.id==='computer' ? renderCsWeek() : '';
-  return `<div class="head"><div class="eyebrow">${s.k} · ${esc(s.desc)}</div><h2>${esc(s.name)}</h2></div>
+  return `${s.id==='computer'?'<div class="nb nb-courses-nav">'+Notebook.tabs()+'</div>':''}<div class="head"><div class="eyebrow">${s.k} · ${esc(s.desc)}</div><h2>${esc(s.name)}</h2></div>
   ${top}
   <div class="sec"><h3>计划里怎么说</h3><div class="plan">${s.plan.map(p=>`<p>${p}</p>`).join('')}</div></div>
   ${extra}
@@ -2781,7 +2786,7 @@ function enToggle(k){ // 词表里点一下：标已学 / 取消
 
 // 保留正在输入的表单内容（重渲染时不丢）
 function snapDraft(){ document.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type==='checkbox')return; draft[el.id]=el.value; }); }
-const noDraft=id=>id.startsWith('tt-')||id.startsWith('hw-'); // 这些是「当前这一格」的，不能跨格子沿用
+const noDraft=id=>id.startsWith('tt-')||id.startsWith('hw-')||id.startsWith('nb-'); // 这些是「当前这一格」的，不能跨格子沿用
 function restoreDraft(){ document.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type==='checkbox'||noDraft(el.id))return; if(draft[el.id]!==undefined && el.value!==draft[el.id]) el.value=draft[el.id]; }); }
 document.addEventListener('input',e=>{ if(e.target.id && !noDraft(e.target.id)) draft[e.target.id]=e.target.value;
   if(e.target.classList&&e.target.classList.contains('grow')) autoGrow(e.target); });
@@ -2934,6 +2939,7 @@ document.addEventListener('submit',async e=>{
   await store.set('plans',uid(),{date,time,text,createdAt:now()});
 });
 document.addEventListener('click',async e=>{
+  if(Notebook.handleClick(e)) return;
   if(dragged||e.target.closest('[data-mv],[data-mvrow]')) return;
   const pldel=e.target.closest('[data-pldel]'); if(pldel){ await store.del('plans',pldel.dataset.pldel); return; }
   if(editing && !e.target.closest('#tt-edit')){ ttCommit(); }
@@ -2973,10 +2979,7 @@ document.addEventListener('click',async e=>{
     else { while(t.rows.length>1 && t.rows[t.rows.length-1].every(x=>!x)) t.rows.pop(); }
     ttSave(t); return;}
   if(e.target.closest('[data-export]')){ doExport(); return; }
-  const cg=e.target.closest('[data-csgo]'); if(cg){const [id,i]=cg.dataset.csgo.split(':');
-    openOp=id; openWk=id+':'+i; render();
-    const el=document.querySelector('.wk.open'); if(el) el.scrollIntoView({block:'center',behavior:'smooth'});
-    return;}
+  const cg=e.target.closest('[data-csgo]'); if(cg){cur='computer';Notebook.select(cg.dataset.csgo);return;}
   const cl=e.target.closest('[data-cslog]'); if(cl){const add=Number(cl.dataset.cslog);
     const wk=isoWeek(new Date()), cur0=mem.hist.csweek||{};
     const base=(cur0.iso===wk?Number(cur0.mins):0)||0;
