@@ -3,7 +3,7 @@
 const Notebook = (() => {
   const K = NotebookKnowledge;
   const state = {mode:'notes', selected:'y1-cs50t:4', editing:false, query:'', course:'all', group:'all', node:'html', edge:null, graphQuery:'', zoom:1, panX:0, panY:0};
-  let accountKey = null, drafts = {}, statuses = {}, timer = null, queue = Promise.resolve(), drag = null, positionsCache = new Map();
+  let accountKey = null, drafts = {}, statuses = {}, timer = null, queue = Promise.resolve(), drag = null, positionsCache = new Map(), pendingGraph = null;
   const html = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const normalize = s => String(s||'').toLocaleLowerCase();
   const watched = r => !!(mem.courses[r.course] && (sylWatch(r.course)[r.index] || sylDone(r.course)[r.index]));
@@ -143,10 +143,25 @@ const Notebook = (() => {
     const lessons=[...new Map(node.refs.filter(watched).map(r=>[`${r.course}:${r.index}`,r])).values()];
     return `<div class="nb-detail-label">${html(K.groups[node.group].label)} · 课上讲过</div><h3>${html(node.title)}</h3><p>${html(node.description)}</p><h4>与你的笔记连接</h4>${lessons.map(r=>`<button type="button" class="nb-note-link" data-nb-note="${r.course}:${r.index}"><strong>${html(sourceTitle(r))} ↗</strong><span>${sylNotes(r.course)[r.index]?'打开原有笔记':'这讲尚未记笔记'}</span></button>`).join('')}<h4>直接关系 · ${connected.length}</h4>${connected.map(e=>{const other=nodes.find(n=>n.id===(e.from===node.id?e.to:e.from));return `<button type="button" class="nb-relation" data-nb-edge="${e.id}"><small>${e.from===node.id?'→':'←'} ${html(e.label)}</small>${html(other.title)}</button>`;}).join('')||'<p>这里暂时没有核对过的连线。</p>'}<h4>课程依据</h4>${sources(node.refs)}`;
   }
+  function graphScene(nodes,edges) {
+    if(!nodes.length||typeof NotebookGraph3D==='undefined'){pendingGraph=null;return graphSVG(nodes,edges);}
+    pendingGraph={nodes,edges,groups:K.groups,selectedNode:state.node,selectedEdge:state.edge,
+      onNode(id){state.node=id;state.edge=null;render();},onEdge(id){state.edge=id;render();}};
+    return '<div class="nb-three" id="nb-three"><canvas tabindex="0" aria-label="三维知识网；可拖动旋转、缩放，也可用方向键旋转。"></canvas><div class="nb-3d-labels"></div><span class="nb-3d-orientation" aria-hidden="true">3D</span></div>';
+  }
+  function afterRender() {
+    if(typeof NotebookGraph3D==='undefined')return;
+    const container=document.getElementById('nb-three');
+    if(!container||!pendingGraph){NotebookGraph3D.dispose();return;}
+    if(!NotebookGraph3D.mount(container,pendingGraph))container.innerHTML=graphSVG(pendingGraph.nodes,pendingGraph.edges);
+  }
   function mapHTML() {
     const {nodes,edges}=graphData(); if(state.node&&!nodes.some(n=>n.id===state.node)){state.node=null;state.edge=null;}
     const notReviewed=records().filter(r=>r.seen&&!K.nodes.some(n=>n.refs.some(f=>f.course===r.course&&f.index===r.index)));
-    return `<div class="nb-map-intro"><p>${nodes.length} 个已学知识点 · ${edges.length} 条有解释的关系。课上讲过 ≠ 已经掌握。</p><div class="nb-map-controls"><input type="search" id="nb-graph-search" placeholder="搜索知识点…" value="${html(state.graphQuery)}" aria-label="搜索知识点"><select id="nb-group" aria-label="筛选知识领域"><option value="all">全部已学</option>${Object.entries(K.groups).map(([id,g])=>`<option value="${id}" ${state.group===id?'selected':''}>${html(g.label)}</option>`).join('')}</select></div></div><div class="nb-map-layout"><section class="nb-map-canvas" aria-label="可拖动的知识网">${graphSVG(nodes,edges)}<div class="nb-map-buttons"><button type="button" data-nb-zoom="in" aria-label="放大知识网">＋</button><button type="button" data-nb-zoom="out" aria-label="缩小知识网">−</button><button type="button" data-nb-zoom="reset">复位</button></div><div class="nb-legend">${Object.entries(K.groups).map(([,g])=>`<span><i style="background:${g.color}"></i>${html(g.label)}</span>`).join('')}<span>拖动平移 · 点选查看 · 箭头旁是关系</span></div></section><aside class="nb-map-detail" aria-label="知识关系详情">${graphDetail(nodes,edges)}</aside></div>${notReviewed.length?`<p class="nb-save">另有 ${notReviewed.length} 讲已标记看完，知识关系待核对，暂不生成猜测连线。</p>`:''}`;
+    return `<div class="nb-map-intro"><p>${nodes.length} 个已学知识点 · ${edges.length} 条有解释的关系。课上讲过 ≠ 已经掌握。</p><div class="nb-map-controls"><input type="search" id="nb-graph-search" placeholder="搜索知识点…" value="${html(state.graphQuery)}" aria-label="搜索知识点"><select id="nb-group" aria-label="筛选知识领域"><option value="all">全部已学</option>${Object.entries(K.groups).map(([id,g])=>`<option value="${id}" ${state.group===id?'selected':''}>${html(g.label)}</option>`).join('')}</select></div></div>
+      <div class="nb-map-layout"><section class="nb-map-canvas" aria-label="可旋转的三维知识网">${graphScene(nodes,edges)}
+      <div class="nb-map-buttons"><button type="button" data-nb-zoom="in" aria-label="放大知识网">＋</button><button type="button" data-nb-zoom="out" aria-label="缩小知识网">−</button><button type="button" data-nb-zoom="reset">复位</button><button type="button" data-nb-zoom="auto" aria-pressed="false">自动旋转</button></div>
+      <div class="nb-legend">${Object.entries(K.groups).map(([,g])=>`<span><i style="background:${g.color}"></i>${html(g.label)}</span>`).join('')}<span>拖动旋转 · 滚轮 / 双指缩放 · Shift 拖动平移 · 点连线查看关系</span></div></section><aside class="nb-map-detail" aria-label="知识关系详情">${graphDetail(nodes,edges)}</aside></div>${notReviewed.length?`<p class="nb-save">另有 ${notReviewed.length} 讲已标记看完，知识关系待核对，暂不生成猜测连线。</p>`:''}`;
   }
   function renderWorkspace() {
     loadDrafts();
@@ -201,7 +216,7 @@ const Notebook = (() => {
     if('nbNew'in d){save();const id=uid(),key=`note:${id}`;mem.notes[id]={subject:'computer',text:'',createdAt:now()};lsSave();state.selected=key;state.editing=true;state.mode='notes';render();focusEditor();return true;}
     if(d.nbNode||d.nbConcept){state.node=d.nbNode||d.nbConcept;state.edge=null;if(d.nbConcept){save();state.mode='map';state.group='all';state.graphQuery='';persistView();}render();return true;}
     if(d.nbEdge){state.edge=d.nbEdge;render();return true;}
-    if(d.nbZoom){if(d.nbZoom==='reset'){state.zoom=1;state.panX=0;state.panY=0;}else state.zoom=Math.max(.5,Math.min(2.8,state.zoom*(d.nbZoom==='in'?1.2:1/1.2)));updateTransform();return true;}
+    if(d.nbZoom){if(typeof NotebookGraph3D!=='undefined'&&NotebookGraph3D.action(d.nbZoom))return true;if(d.nbZoom==='auto')return true;if(d.nbZoom==='reset'){state.zoom=1;state.panX=0;state.panY=0;}else state.zoom=Math.max(.5,Math.min(2.8,state.zoom*(d.nbZoom==='in'?1.2:1/1.2)));updateTransform();return true;}
     if('nbCopy'in d){copyText(textFor(current()),'草稿已复制');return true;}
     if('nbDuplicate'in d){const text=textFor(current()),id=uid();store.set('notes',id,{subject:'computer',text,createdAt:now()});state.selected=`note:${id}`;state.mode='notes';state.editing=false;render();return true;}
     return false;
@@ -209,7 +224,7 @@ const Notebook = (() => {
   document.addEventListener('input',e=>{
     if(e.target.id==='nb-editor'){if(!e.isComposing)input(e.target.value);else{loadDrafts();const key=state.selected;drafts[key]={text:e.target.value,base:drafts[key]?.base??serverText(key),updatedAt:Date.now()};persistDrafts();}return;}
     if(e.target.id==='nb-search'){state.query=e.target.value;render();}
-    if(e.target.id==='nb-graph-search'){state.graphQuery=e.target.value;render();}
+    if(e.target.id==='nb-graph-search'){state.graphQuery=e.target.value;const q=normalize(state.graphQuery.trim());if(q){const match=activeNodes().find(n=>normalize(n.title)===q||n.aliases.some(a=>normalize(a)===q))||activeNodes().find(n=>normalize(n.title).includes(q));if(match){state.node=match.id;state.edge=null;}}render();}
   });
   document.addEventListener('compositionend',e=>{if(e.target.id==='nb-editor')input(e.target.value);});
   document.addEventListener('change',e=>{if(e.target.id==='nb-course'){state.course=e.target.value;render();}if(e.target.id==='nb-group'){state.group=e.target.value;state.edge=null;render();}});
@@ -223,5 +238,5 @@ const Notebook = (() => {
   document.addEventListener('pointerdown',e=>{const svg=e.target.closest('#nb-network');if(!svg||e.target.closest('.nb-node,.nb-edge'))return;const rect=svg.getBoundingClientRect();drag={id:e.pointerId,x:e.clientX,y:e.clientY,px:state.panX,py:state.panY,scale:Math.max(1200/rect.width,740/rect.height)};svg.setPointerCapture(e.pointerId);});
   document.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;state.panX=drag.px+(e.clientX-drag.x)*drag.scale;state.panY=drag.py+(e.clientY-drag.y)*drag.scale;updateTransform();});
   document.addEventListener('pointerup',()=>{drag=null;});document.addEventListener('pointercancel',()=>{drag=null;});
-  return {get mode(){loadDrafts();return state.mode;},render:renderWorkspace,tabs,handleClick,save,select,activeNodes,activeEdges,graphData};
+  return {get mode(){loadDrafts();return state.mode;},render:renderWorkspace,tabs,handleClick,save,select,activeNodes,activeEdges,graphData,afterRender};
 })();
