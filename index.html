@@ -1,6 +1,6 @@
 <!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080b12"><style>[hidden]{display:none!important}</style>
 <title>五年学习本</title>
-<link rel="stylesheet" href="notebook.css?v=20261109-systems">
+<link rel="stylesheet" href="notebook.css?v=20261109-notes">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap">
 <style>
 :root{
@@ -619,8 +619,9 @@ body.locked .shell{visibility:hidden}
 </div>
 
 <script src="knowledge.js?v=20261109-systems"></script>
+<script src="official-notes.js?v=20261109"></script>
 <script src="graph-3d.js?v=20261109-systems"></script>
-<script src="notebook.js?v=20261109-systems"></script>
+<script src="notebook.js?v=20261109-notes"></script>
 <script>
 // ---------- 静态内容（来自五年学习表） ----------
 const SUBJECTS = [
@@ -1855,6 +1856,7 @@ function autoGrow(el){
 function growAll(){ document.querySelectorAll('textarea.grow').forEach(autoGrow); }
 
 function render(){
+  Notebook.beforeRender();
   // 记住正在输入的框和光标位置，重画后放回去
   const ae=document.activeElement; const keep=ae&&ae.id&&ae.id!=='tt-edit'&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)?{id:ae.id,s:ae.selectionStart,e:ae.selectionEnd,top:ae.scrollTop}:null;
   const nav=document.getElementById('nav');

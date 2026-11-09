@@ -1,0 +1,495 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src https:; base-uri 'none'; form-action 'none'"><title>Multimedia · CS50 official notes</title><link rel="stylesheet" href="reader.css?v=20261109"></head><body><header class="credit"><div class="eyebrow">CS50 / OFFICIAL LECTURE NOTES</div><p>CS50 · Harvard University · David J. Malan<br><a href="https://cs50.harvard.edu/technology/notes/3/" target="_blank" rel="noopener noreferrer">官方原文 ↗</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-NC-SA 4.0</a> · 阅读副本 2026-11-09</p><p>保留官方英文正文；调整排版、移除站点导航及脚本、转换相对链接。未翻译正文；本阅读副本同样采用 CC BY-NC-SA 4.0。非官方站点，不代表课程方背书。</p><p class="archive">CS50T 为官方存档课程；本副本保留原讲义的历史内容，具体软件界面与服务现状请以当前官方资料为准。</p></header><main>
+
+                    <h1 id="multimedia">Multimedia</h1>
+
+<p>by Spencer Tiberi</p>
+
+<h2 id="introduction"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/multimedia?t=0m10s" target="_blank" rel="noopener noreferrer">Introduction</a></h2>
+
+<ul>
+  <li>Odds are you use it everyday, but what is it?</li>
+</ul>
+
+<h2 id="audio"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/multimedia?t=0m17s" target="_blank" rel="noopener noreferrer">Audio</a></h2>
+
+<ul>
+  <li>Computers are good at recording, playing back, and generating audio</li>
+  <li>Uses different file formats
+    <ul>
+      <li>File formats are just a way of storing 0s and 1s on disk so that certain software knows how to interpret it</li>
+    </ul>
+  </li>
+  <li>MIDI
+    <ul>
+      <li>Way of storing musical notes for certain songs</li>
+      <li>Can do this for different instruments
+        <ul>
+          <li>Programs can render the notes for these instruments</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>GarageBand
+    <ul>
+      <li>Included with macOS</li>
+    </ul>
+
+    <p><img src="https://cs50.harvard.edu/technology/notes/3/garageband.png" alt="GarageBand" width="400px" loading="lazy" referrerpolicy="no-referrer"></p>
+
+    <ul>
+      <li>This is the Star Wars theme in MIDI
+        <ul>
+          <li>Doesn’t sound quite as good as the actual version</li>
+          <li>Computer synthesizes the notes
+            <ul>
+              <li>Not an actual recording</li>
+              <li>Computer interprets notes in the MIDI file</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>MIDI is common in the digital workspace among musicians who wish to share music with each other.</li>
+  <li>Humans typically like to hear music preformed and recorded by humans
+    <ul>
+      <li>File formats for recorded music include:
+        <ul>
+          <li>AAC</li>
+          <li>MIDI</li>
+          <li>MP3</li>
+          <li>WAV</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>WAV is an early sound format, but still used
+    <ul>
+      <li>Uncompressed data storage allowing high quality</li>
+    </ul>
+  </li>
+  <li>MP3
+    <ul>
+      <li>File format for audio that uses compression
+        <ul>
+          <li>Significantly reduce how many bits are necessary to store a song</li>
+          <li>Discards 0s and 1s that humans can’t necessarily hear
+            <ul>
+              <li>True audiophiles may disagree</li>
+            </ul>
+          </li>
+          <li>Trade off between optimizing storage space and sacrificing quality</li>
+          <li>This compression is said to be lossy
+            <ul>
+              <li>Losing the quality in the compression process</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>AAC
+    <ul>
+      <li>Similar to MP3</li>
+      <li>May see when you download a song from iTunes</li>
+    </ul>
+  </li>
+  <li>Streaming services such as Spotify don’t transfer a file to you but rather stream bits of information to you</li>
+  <li>How do we think about the quality of these formats?
+    <ul>
+      <li>Sampling frequency
+        <ul>
+          <li>Number of times per seconds we take a digital snapshot of what a person would hear</li>
+        </ul>
+      </li>
+      <li>Bit depth
+        <ul>
+          <li>Number of bits used for these individual snapshots</li>
+        </ul>
+      </li>
+      <li>Sampling frequency x bit depth = number of bits necessary to store one second of music</li>
+      <li>Audio file formats allow you to modify what these parameters are</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="graphics"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/multimedia?t=5m3s" target="_blank" rel="noopener noreferrer">Graphics</a></h2>
+
+<ul>
+  <li>A graphic, what we see with multimedia, is really just a bunch of pixels both horizontal and vertical
+    <ul>
+      <li>All file formats are rectangular in nature, though transparent pixels can make images look to take on other shapes</li>
+      <li>
+        <p>In the simplest form, each of the dots or pixels is a bunch of 0s and 1s</p>
+
+        <p><img src="https://cs50.harvard.edu/technology/notes/3/smile.png" alt="smile" width="400px" loading="lazy" referrerpolicy="no-referrer"></p>
+      </li>
+      <li>To create a file format, we just need to determine a mapping</li>
+    </ul>
+  </li>
+  <li>This image is only black and white, so how to represent color?</li>
+</ul>
+
+<h2 id="rgb"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/multimedia?t=7m1s" target="_blank" rel="noopener noreferrer">RGB</a></h2>
+
+<ul>
+  <li>RGB stands for Red Green Blue
+    <ul>
+      <li>With information giving an amount of red, an amount of green, and an amount of blue, you can tell a computer how to colorize pixels</li>
+      <li>None of the colors yields a black pixel</li>
+      <li>All of the colors yields a white pixel</li>
+      <li>In between these two options is where we get all sorts of colors</li>
+    </ul>
+  </li>
+  <li>Consider the three bytes: 11111111 00000000 00000000
+    <ul>
+      <li>If we interpret these bytes to represent colors, it appears we want all of the red, none of the green, and none of the blue</li>
+      <li>These 24 bits (3 bytes =  3 x 8 bits = 24 bits) represent the color we know as red!
+        <ul>
+          <li>If a computer wanted to represent this color, it would store these 24 bits</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>Consider the three bytes: 00000000 11111111 00000000
+    <ul>
+      <li><span>Green</span></li>
+    </ul>
+  </li>
+  <li>Consider the three bytes: 00000000 0000000 11111111
+    <ul>
+      <li><span>Blue</span></li>
+    </ul>
+  </li>
+  <li>Consider the three bytes: 00000000 0000000 0000000
+    <ul>
+      <li><span>Black</span></li>
+    </ul>
+  </li>
+  <li>Consider the three bytes: 11111111 11111111 11111111
+    <ul>
+      <li><span>White</span></li>
+    </ul>
+  </li>
+  <li>Can get many color variations by mixing the above colors in different quantities</li>
+  <li>When we talk about image formats, we typically don’t talk in terms of binary but rather something called hexadecimal (base-16, contains 16 digits)
+    <ul>
+      <li>0, 1, 2, 3, 4, 5, 6, 7, 8, 9, a, b, c, d, e, f</li>
+      <li>0 is the smallest number we can represent in single digit</li>
+      <li>f is the largest number (value of 15) we can represent in a single digit</li>
+    </ul>
+  </li>
+  <li>Consider the 8 bits: 1111 1111
+    <ul>
+      <li>Each hexadecimal digit represents four bits</li>
+      <li>One hexadecimal digit can represent the first four bits, another can represent the second four
+        <ul>
+          <li>Represent something with eight symbols using only two!</li>
+        </ul>
+      </li>
+      <li>1111 is the decimal number 15, which is f</li>
+      <li>Therefore, 1111 1111 in hexadecimal is ff</li>
+    </ul>
+  </li>
+  <li>Red can thus be represented in hexadecimal as <span> ff 00 00 </span>
+</li>
+  <li>Green can be represented in hexadecimal as <span> 00 ff 00 </span>
+</li>
+  <li>Blue can be represented in hexadecimal as <span> 00 00 ff </span>
+</li>
+  <li>A lot of graphical editing software such as Photoshop use hexadecimal to represent colors</li>
+</ul>
+
+<h2 id="bitmap-format"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/multimedia?t=12m45s" target="_blank" rel="noopener noreferrer">Bitmap Format</a></h2>
+<p><img src="https://cs50.harvard.edu/technology/notes/3/xp.png" alt="XP" width="400px" loading="lazy" referrerpolicy="no-referrer"></p>
+<ul>
+  <li>This background for Windows XP was a bitmap file (.bmp)
+    <ul>
+      <li>A mapping or grid of bits much like the smiley face from before</li>
+    </ul>
+  </li>
+  <li>
+    <p>Zooming in on this image show that it is just a grid of dots</p>
+
+    <p><img src="https://cs50.harvard.edu/technology/notes/3/xpzoom.png" alt="XP zoom" width="400px" loading="lazy" referrerpolicy="no-referrer"></p>
+
+    <ul>
+      <li>Notice the pixelation</li>
+    </ul>
+  </li>
+  <li>Much like with audio, so too in the world of images do you have discretion over how many bits to use
+    <ul>
+      <li>How many bits to represent each pixel’s color?</li>
+      <li>Resolution is another factor
+        <ul>
+          <li>An image that is only 100 pixels scaled up only duplicates the existing limited information, resulting in a blotchy image</li>
+          <li>Would be better to start with image that has a higher resolution (more pixels)</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>A lot of repeated colors, so it seems silly to represent each color with the same number of bits</li>
+</ul>
+
+<h2 id="image-compression"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/multimedia?t=17m28s" target="_blank" rel="noopener noreferrer">Image Compression</a></h2>
+
+<ul>
+  <li>Graphical file formats can often be compressed</li>
+  <li>Can be done lossy or losslessly
+    <ul>
+      <li>With audio, we threw away audio information that the human ear can’t necessarily hear
+        <ul>
+          <li>This is lossy compression; throwing information away</li>
+        </ul>
+      </li>
+      <li>Using fewer bits to represent the same information is lossless compression</li>
+    </ul>
+  </li>
+  <li>
+    <p>Lossless compression</p>
+
+    <p><img src="https://cs50.harvard.edu/technology/notes/3/apples.png" alt="apples" width="400" loading="lazy" referrerpolicy="no-referrer"></p>
+  </li>
+  <li>There is a lot of repeated blue in the first image
+    <ul>
+      <li>Using the same 24 bits to represent each pixel!</li>
+    </ul>
+  </li>
+  <li>The second image is compressed and not what a user would see
+    <ul>
+      <li>The first column contains the color that the rest of the row (scan line) should have
+        <ul>
+          <li>Image contains instructions on how to repeat the color in a particular row</li>
+        </ul>
+      </li>
+      <li>When a color is encountered that isn’t in the first column (the apple in this case), the instructions would list the colors for each non-repeated pixel</li>
+      <li>This uses less bits but makes the original information recoverable</li>
+    </ul>
+  </li>
+  <li>
+    <p>Lossy compression</p>
+
+    <p><img src="https://cs50.harvard.edu/technology/notes/3/sunflower1.png" alt="sunflower1" width="400px" loading="lazy" referrerpolicy="no-referrer"></p>
+  </li>
+  <li>This is a .jpg photograph that is somewhat compressed, but not easy to tell</li>
+  <li>Let’s say we want to compress this image further so that we can share it without going over a social media platform’s limit</li>
+  <li>
+    <p>It contains more complicated patterns of colors, so let’s try a lossy compression resulting in the following:</p>
+
+    <p><img src="https://cs50.harvard.edu/technology/notes/3/sunflower2.png" alt="sunflower2" width="400px" loading="lazy" referrerpolicy="no-referrer"></p>
+  </li>
+  <li>Lossy compression means that I won’t be able to get that original image back
+    <ul>
+      <li>The compression throws away bits of information
+        <ul>
+          <li>“Does the sky really need this many shades of blue?”</li>
+          <li>“Does this leaf really need this many shades of green”
+            <ul>
+              <li>Replaces bits with only a few colors giving an approximation</li>
+              <li>I will not be able to know how clear the sky used to be from this information</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="image-file-formats"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/multimedia?t=23m21s" target="_blank" rel="noopener noreferrer">Image File Formats</a></h2>
+
+<ul>
+  <li>BMP
+    <ul>
+      <li>Originally used by Windows</li>
+      <li>Not super common these days</li>
+    </ul>
+  </li>
+  <li>GIF
+    <ul>
+      <li>Low quality images
+        <ul>
+          <li>Only supports 8-bit color</li>
+        </ul>
+      </li>
+      <li>Often used for memes
+        <ul>
+          <li>Can be animated</li>
+          <li>
+            <p>Like a video file with only a few images</p>
+
+            <p><img src="https://cs50.harvard.edu/technology/notes/3/nyan.gif" alt="nyan" width="250px" loading="lazy" referrerpolicy="no-referrer"></p>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>JPEG
+    <ul>
+      <li>Supports 24-bit color</li>
+      <li>Losslessly compresses
+        <ul>
+          <li>Can minimize amount of compression to create high quality photos</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>PNG
+    <ul>
+      <li>High quality graphics</li>
+      <li>Supports 24-bit color</li>
+    </ul>
+  </li>
+  <li>All these formats ultimately have an limited amount of information
+    <ul>
+      <li>Ultimate just store pixels and colors of when the image was taken</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="enhance"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/multimedia?t=27m0s" target="_blank" rel="noopener noreferrer">“Enhance”</a></h2>
+
+<ul>
+  <li>Common for popular culture abuses of what it means to be a multimedia format
+    <ul>
+      <li>“Enhancing” means to make an image as clear as possible not matter what format it was saved in</li>
+    </ul>
+  </li>
+  <li>
+<a href="https://video.cs50.net/cscie1a/2017/fall/lectures/multimedia?t=27m30s" target="_blank" rel="noopener noreferrer">David shows a clip of characters “enhancing” an image</a>
+    <ul>
+      <li>The characters zoom into a pixelated frame of a video and somehow clear it up to see a reflection
+        <ul>
+          <li>Video is just a whole bunch of images being shown to us quickly (24 frames per second, etc.)</li>
+        </ul>
+      </li>
+      <li>The pixelated image only contains information for those pixels
+        <ul>
+          <li>There is no way to obtain a clear image unless the original image was already at a high resolution</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/multimedia?t=30m5s" target="_blank" rel="noopener noreferrer">David contrasts this with an aware clip of Futurama</a></li>
+</ul>
+
+<h2 id="video-compression"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/multimedia?t=30m21s" target="_blank" rel="noopener noreferrer">Video Compression</a></h2>
+
+<ul>
+  <li>You can think of a video format as similar to a flip book</li>
+  <li>Video formats are just a bunch of images shown quickly in succession to create the illusion of motion
+    <ul>
+      <li>Not necessarily all information stored as png, jpg, gif, or even images</li>
+      <li>Algorithms and mathematics can help go from one frame to another</li>
+    </ul>
+  </li>
+  <li>Opportunities for compression
+    <ul>
+      <li>Can leverage same image compression techniques for each frame (intra-frame coding)</li>
+      <li>
+        <p>Background of multiple frames can contain redundant information</p>
+
+        <p><img src="https://cs50.harvard.edu/technology/notes/3/interframe.png" alt="interframe" width="400px" loading="lazy" referrerpolicy="no-referrer"></p>
+      </li>
+      <li>Compare current frame and next frame of video and determine what has changed
+        <ul>
+          <li>Store these differences</li>
+          <li>Key frames store a snapshot of time to remember what the video looks like</li>
+          <li>In each subsequent frame remember what has changed
+            <ul>
+              <li>Using algorithms and math, background is drawn</li>
+            </ul>
+          </li>
+          <li>Key frames are stored multiple times to guarantee that frames can be recovered</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="video-file-formats"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/multimedia?t=34m16s" target="_blank" rel="noopener noreferrer">Video File Formats</a></h2>
+
+<ul>
+  <li>In the world of video, there are more solutions on how to store information</li>
+  <li>Video file formats are containers
+    <ul>
+      <li>Containers are digital container in which you can put multiple types of data</li>
+      <li>Can include a video track, audio track, a secondary audio track (for different languages), closed captions, …</li>
+    </ul>
+  </li>
+  <li>AVI
+    <ul>
+      <li>Commonly used in Windows</li>
+    </ul>
+  </li>
+  <li>DivX</li>
+  <li>Matroska
+    <ul>
+      <li>Open source container meant to be more versatile</li>
+    </ul>
+  </li>
+  <li>MP4
+    <ul>
+      <li>Pretty much universal in all browsers</li>
+    </ul>
+  </li>
+  <li>QuickTime
+    <ul>
+      <li>Commonly used in MacOS</li>
+    </ul>
+  </li>
+  <li>Codecs
+    <ul>
+      <li>Ways of storing and encoding information</li>
+      <li>For video:
+        <ul>
+          <li>H.264</li>
+          <li>MPEG-4 Part-2</li>
+          <li>…</li>
+        </ul>
+      </li>
+      <li>For audio:
+        <ul>
+          <li>Can be stand alone files or tracks in a container!</li>
+          <li>AAC</li>
+          <li>MP3</li>
+          <li>…</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="3d-video"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/multimedia?t=36m45s" target="_blank" rel="noopener noreferrer">3D Video</a></h2>
+
+<ul>
+  <li>
+    <p>Increasingly, 3D formats are becoming more common</p>
+
+    <p><img src="https://cs50.harvard.edu/technology/notes/3/sanders.png" alt="Sanders" width="400px" loading="lazy" referrerpolicy="no-referrer"></p>
+
+    <ul>
+      <li>This is a 360 degree image of Sanders Theatre
+        <ul>
+          <li>A spherical image</li>
+          <li>Looks distorted in 2D</li>
+          <li>Like flattening a globe</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>Images can contain metadata
+    <ul>
+      <li>Information that viewers can’t see</li>
+      <li>Tells programs, applications, and browsers how to display the image</li>
+    </ul>
+  </li>
+  <li>
+    <p>With sensors on a headset, users can experience virtual reality</p>
+
+    <p><img src="https://cs50.harvard.edu/technology/notes/3/vr.png" alt="VR" width="400px" loading="lazy" referrerpolicy="no-referrer"></p>
+  </li>
+  <li>More file formats are still on the horizon, but ultimately all of them boil down to storing 0s and 1s and why!</li>
+</ul>
+
+
+</main></body></html>

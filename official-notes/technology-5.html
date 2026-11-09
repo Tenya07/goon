@@ -1,0 +1,845 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src https:; base-uri 'none'; form-action 'none'"><title>Web Development · CS50 official notes</title><link rel="stylesheet" href="reader.css?v=20261109"></head><body><header class="credit"><div class="eyebrow">CS50 / OFFICIAL LECTURE NOTES</div><p>CS50 · Harvard University · David J. Malan<br><a href="https://cs50.harvard.edu/technology/notes/5/" target="_blank" rel="noopener noreferrer">官方原文 ↗</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-NC-SA 4.0</a> · 阅读副本 2026-11-09</p><p>保留官方英文正文；调整排版、移除站点导航及脚本、转换相对链接。未翻译正文；本阅读副本同样采用 CC BY-NC-SA 4.0。非官方站点，不代表课程方背书。</p><p class="archive">CS50T 为官方存档课程；本副本保留原讲义的历史内容，具体软件界面与服务现状请以当前官方资料为准。</p></header><main>
+
+                    <h1 id="web-development">Web Development</h1>
+
+<p>by Spencer Tiberi</p>
+
+<h2 id="internet-recap"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=0m09s" target="_blank" rel="noopener noreferrer">Internet Recap</a></h2>
+
+<ul>
+  <li>All the computers on the internet are interconnected that supports HTTP and TCP/IP</li>
+  <li>The internet is an infrastructure to get data from a server to a client
+    <ul>
+      <li>Supports emails, video conferencing, etc.</li>
+    </ul>
+  </li>
+  <li>The web is one specific application or service that runs atop the internet
+    <ul>
+      <li>Assumes an internet exists to get data from point A to point B
+        <ul>
+          <li>Layers functionality that allows us to click, browse, etc.</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="web-browser"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=1m3s" target="_blank" rel="noopener noreferrer">Web Browser</a></h2>
+
+<ul>
+  <li>Web browsers are found on phones, computers, and game consoles</li>
+  <li>They have a space to enter a URL (Uniform Resource Locator)
+    <ul>
+      <li>Prefixed by <code class="language-plaintext highlighter-rouge">http://</code> or <code class="language-plaintext highlighter-rouge">https://</code>
+</li>
+    </ul>
+  </li>
+  <li>When typing in a URL, you’re sending a request from your device to some remote server
+    <ul>
+      <li>The server looks at your request and figures out how to respond</li>
+      <li>Like when we previous requested cat images!</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="web-server"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=2m52s" target="_blank" rel="noopener noreferrer">Web Server</a></h2>
+
+<ul>
+  <li>A computer that has a CPU, RAM, and a hard drive</li>
+  <li>Rack servers
+<img src="https://cs50.harvard.edu/technology/notes/5/rack.png" alt="Rack Server" width="400" loading="lazy" referrerpolicy="no-referrer">
+    <ul>
+      <li>Sized so they can be stacked</li>
+    </ul>
+  </li>
+  <li>Odds are your company has many of these if they have a web server</li>
+</ul>
+
+<h2 id="http"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=4m21s" target="_blank" rel="noopener noreferrer">HTTP</a></h2>
+
+<ul>
+  <li>We send requests to web servers
+    <ul>
+      <li>Language of these requests is HTTP (Hypertext Transfer Protocol)</li>
+    </ul>
+  </li>
+  <li>Request:
+<code class="language-plaintext highlighter-rouge">GET /cat.jpg HTTP/1.1</code>
+    <ul>
+      <li>
+<code class="language-plaintext highlighter-rouge">1.1</code> refers to HTTP language 1.1</li>
+    </ul>
+  </li>
+  <li>Response by the server:
+<code class="language-plaintext highlighter-rouge">HTTP/1.1 200 OK</code>
+    <ul>
+      <li>This literally means that everything was okay with the request</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="http-status-codes"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=6m3s" target="_blank" rel="noopener noreferrer">HTTP Status Codes</a></h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Code</th>
+      <th>Status</th>
+      <th>Meaning</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>200</td>
+      <td>OK</td>
+      <td>Everything is OK</td>
+    </tr>
+    <tr>
+      <td>301</td>
+      <td>Moved Permanently</td>
+      <td>Browser should redirect to new location</td>
+    </tr>
+    <tr>
+      <td>302</td>
+      <td>Found</td>
+      <td>Browser should redirect to new location</td>
+    </tr>
+    <tr>
+      <td>304</td>
+      <td>Not Modified</td>
+      <td>Browser will cache files if things don’t change to save time/bytes from requests</td>
+    </tr>
+    <tr>
+      <td>401</td>
+      <td>Unauthorized</td>
+      <td>Not authorized to view content; Could require login</td>
+    </tr>
+    <tr>
+      <td>403</td>
+      <td>Forbidden</td>
+      <td>Not able to view content</td>
+    </tr>
+    <tr>
+      <td>404</td>
+      <td>Not Found</td>
+      <td>The requested data could not be found because it doesn’t exist on the server</td>
+    </tr>
+    <tr>
+      <td>500</td>
+      <td>Internal Service Error</td>
+      <td>Not your fault; The server erred</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="html"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=8m37s" target="_blank" rel="noopener noreferrer">HTML</a></h2>
+
+<ul>
+  <li>In addition to the HTTP headers that include status codes, the bits representing an image or website will be sent to you</li>
+  <li>The language that builds websites is HTML (Hypertext Markup Language)
+    <ul>
+      <li>Sent as a response for a request for a web page</li>
+    </ul>
+  </li>
+  <li>HTML isn’t a programming language but rather a markup language
+    <ul>
+      <li>
+        <p>Allows you to format, but doesn’t have control flow such as loops and conditions</p>
+
+        <div class="language-plaintext highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code>&lt;!DOCTYPE html&gt;
+
+&lt;html lang=&quot;en&quot;&gt;
+    &lt;head&gt;
+        &lt;title&gt;hello, world&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        hello, world
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>        </div>
+        <ul>
+          <li>This is html for a webpage that says “hello, world”</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>To implement webpages, you need to write HTML
+    <ul>
+      <li>Editors like Atom and Sublime Text exist to help write HTML
+        <ul>
+          <li>Ultimately, all you need is a computer, a keyboard, and some way of typing out text!</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+<code class="language-plaintext highlighter-rouge">&lt;!DOCTYPE html&gt;</code>
+    <ul>
+      <li>Lets the browser know the following file is written in HTML 5</li>
+    </ul>
+  </li>
+  <li>
+<code class="language-plaintext highlighter-rouge">&lt;html lang=&quot;en&quot;&gt;</code>
+    <ul>
+      <li>Specifies that the webpage is written in English</li>
+    </ul>
+  </li>
+  <li>
+<code class="language-plaintext highlighter-rouge">&lt;head&gt;&lt;/head&gt;</code>
+    <ul>
+      <li>Example of open and close tags</li>
+    </ul>
+  </li>
+  <li>First tag opened is the last tag closed
+    <ul>
+      <li>HTML is a tag-based markup language
+        <ul>
+          <li>Tags have attributes</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>Standard extension for a webpage is .html</li>
+  <li>David clicks the hello.html file and loads the page
+    <ul>
+      <li>In the top corner of the browser tab is the title
+        <ul>
+          <li>This comes from the <code class="language-plaintext highlighter-rouge">head</code>
+</li>
+        </ul>
+      </li>
+      <li>The <code class="language-plaintext highlighter-rouge">body</code> contains 99% of the webpage’s content</li>
+      <li>This page is a local document, so the address is where David saved it
+        <ul>
+          <li>Not on a web server, so no one else can access it</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>There are web hosts to serve up websites we write
+    <ul>
+      <li>We can also buy our own domain name</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="atom"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=19m0s" target="_blank" rel="noopener noreferrer">Atom</a></h2>
+
+<ul>
+  <li>TextEdit is not designed for web page development</li>
+  <li>Free alternatives made for web development exist</li>
+  <li>Atom is an example of one of these editors
+<img src="https://cs50.harvard.edu/technology/notes/5/atom.png" alt="Atom" width="400" loading="lazy" referrerpolicy="no-referrer">
+</li>
+  <li>Fun fact: these notes were indeed created on Atom!</li>
+  <li>In Atom, you can open multiple files at once</li>
+  <li>Colors are added for readability
+    <ul>
+      <li>These colors don’t effect how the webpage will render</li>
+    </ul>
+  </li>
+  <li>HTML supports comments
+    <ul>
+      <li>To help colleagues who look at your code know your intentions of the code</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="links"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=21m17s" target="_blank" rel="noopener noreferrer">Links</a></h2>
+
+<ul>
+  <li>Links can make our pages more dynamic by linking to other pages
+    <ul>
+      <li>
+<code class="language-plaintext highlighter-rouge">&lt;a&gt;&lt;/a&gt;</code> are anchor tags that can be used for links</li>
+    </ul>
+
+    <div class="language-plaintext highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code>&lt;!DOCTYPE html&gt;
+
+&lt;html lang=&quot;en&quot;&gt;
+    &lt;head&gt;
+        &lt;title&gt;link&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        Visit &lt;a href=&quot;http://www.harvard.edu/&quot;&gt;Harvard&lt;/a&gt;.
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>    </div>
+  </li>
+  <li>href (hyper reference) is set to where you want the link to go</li>
+  <li>Blue, underlined text traditionally represents a link on a webpage</li>
+  <li>The bottom left corner on Chrome shows the destination of a link when you hover over the text</li>
+  <li>A link traditionally becomes purple if you’ve already followed that link
+    <ul>
+      <li>Browser remembers where you’ve been
+        <ul>
+          <li>Potential privacy concern</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="images"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=26m46s" target="_blank" rel="noopener noreferrer">Images</a></h2>
+
+<ul>
+  <li>The web is filled with images</li>
+  <li>
+<code class="language-plaintext highlighter-rouge">&lt;img/&gt;</code> is the image tag</li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;!DOCTYPE html&gt;
+
+&lt;html lang=&quot;en&quot;&gt;
+    &lt;head&gt;
+        &lt;title&gt;image&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;img alt=&quot;Grumpy Cat&quot; src=&quot;cat.jpg&quot;/&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div></div>
+<ul>
+  <li>The <code class="language-plaintext highlighter-rouge">src</code> (source) attribute is set to the address of the file</li>
+  <li>The <code class="language-plaintext highlighter-rouge">alt</code> (alternative text) attribute is what displays if the page can’t be seen</li>
+  <li>Closes itself as one tag</li>
+</ul>
+
+<h2 id="paragraphs"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=30m42s" target="_blank" rel="noopener noreferrer">Paragraphs</a></h2>
+
+<ul>
+  <li>Even if you add spaces to format paragraphs, HTML will render without them!</li>
+  <li>When looking at your webpage you can “view page source” on your browser to see the original HTML with your spaces, but the webpage still doesn’t have these spaces</li>
+  <li>The browser will only do what HTML tells it to do
+    <ul>
+      <li>The browser needs instructions in the form of HTML tags</li>
+    </ul>
+  </li>
+  <li>Paragraph tags (<code class="language-plaintext highlighter-rouge">&lt;p&gt;&lt;/p&gt;</code>) tell the browser to create a paragraph of text</li>
+</ul>
+
+<h2 id="headings"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=34m25s" target="_blank" rel="noopener noreferrer">Headings</a></h2>
+
+<ul>
+  <li>
+<code class="language-plaintext highlighter-rouge">&lt;h1&gt;&lt;/h1&gt;</code> are the heading 1 tags</li>
+  <li>There also exists <code class="language-plaintext highlighter-rouge">&lt;h2&gt;&lt;/h2&gt;</code>, <code class="language-plaintext highlighter-rouge">&lt;h3&gt;&lt;/h3&gt;</code>, <code class="language-plaintext highlighter-rouge">&lt;h4&gt;&lt;/h4&gt;</code>, <code class="language-plaintext highlighter-rouge">&lt;h5&gt;&lt;/h5&gt;</code>, and <code class="language-plaintext highlighter-rouge">&lt;h6&gt;&lt;/h6&gt;</code>
+</li>
+  <li>Headings get smaller the larger the number</li>
+  <li>These make the font larger for usage similar to marking chapters in a book</li>
+</ul>
+
+<h2 id="lists"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=35m27s" target="_blank" rel="noopener noreferrer">Lists</a></h2>
+
+<ul>
+  <li>Unordered lists
+    <ul>
+      <li>Use bullets (like these!)</li>
+      <li><code class="language-plaintext highlighter-rouge">&lt;ul&gt;&lt;/ul&gt;</code></li>
+    </ul>
+  </li>
+  <li>
+<code class="language-plaintext highlighter-rouge">&lt;li&gt;&lt;/li&gt;</code> are list item tags</li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;!DOCTYPE html&gt;
+
+&lt;html lang=&quot;en&quot;&gt;
+    &lt;head&gt;
+        &lt;title&gt;unordered list&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;ul&gt;
+            &lt;li&gt; foo &lt;/li&gt;
+            &lt;li&gt; bar &lt;/li&gt;
+            &lt;li&gt; baz &lt;/li&gt;
+        &lt;/ul&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div></div>
+<p><img src="https://cs50.harvard.edu/technology/notes/5/ul.png" alt="Unordered List" width="400" loading="lazy" referrerpolicy="no-referrer"></p>
+<ul>
+  <li>Ordered lists
+    <ul>
+      <li>Use numbers</li>
+      <li><code class="language-plaintext highlighter-rouge">&lt;ol&gt;&lt;/ol&gt;</code></li>
+    </ul>
+  </li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;!DOCTYPE html&gt;
+
+&lt;html lang=&quot;en&quot;&gt;
+    &lt;head&gt;
+        &lt;title&gt;ordered list&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;ol&gt;
+            &lt;li&gt;foo&lt;/li&gt;
+            &lt;li&gt;bar&lt;/li&gt;
+            &lt;li&gt;baz&lt;/li&gt;
+        &lt;/ol&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div></div>
+<p><img src="https://cs50.harvard.edu/technology/notes/5/ol.png" alt="Ordered List" width="400" loading="lazy" referrerpolicy="no-referrer"></p>
+
+<h2 id="tables"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=36m49s" target="_blank" rel="noopener noreferrer">Tables</a></h2>
+
+<ul>
+  <li>
+<code class="language-plaintext highlighter-rouge">&lt;table&gt;&lt;/table&gt;</code> are table tags that create a table
+    <ul>
+      <li>
+<code class="language-plaintext highlighter-rouge">&lt;tr&gt;&lt;/tr&gt;</code> are table row tags</li>
+      <li>
+<code class="language-plaintext highlighter-rouge">&lt;td&gt;&lt;/td&gt;</code> are table data tag
+        <ul>
+          <li>Like columns or cells</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;!DOCTYPE html&gt;
+
+&lt;html lang=&quot;en&quot;&gt;
+    &lt;head&gt;
+        &lt;title&gt;table&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;table&gt;
+            &lt;tr&gt;
+                &lt;td&gt;7&lt;/td&gt;
+                &lt;td&gt;8&lt;/td&gt;
+                &lt;td&gt;9&lt;/td&gt;
+            &lt;/tr&gt;
+            &lt;tr&gt;
+                &lt;td&gt;4&lt;/td&gt;
+                &lt;td&gt;5&lt;/td&gt;
+                &lt;td&gt;6&lt;/td&gt;
+            &lt;/tr&gt;
+            &lt;tr&gt;
+                &lt;td&gt;1&lt;/td&gt;
+                &lt;td&gt;2&lt;/td&gt;
+                &lt;td&gt;3&lt;/td&gt;
+            &lt;/tr&gt;
+            &lt;tr&gt;
+                &lt;td&gt;*&lt;/td&gt;
+                &lt;td&gt;0&lt;/td&gt;
+                &lt;td&gt;#&lt;/td&gt;
+            &lt;/tr&gt;
+        &lt;/table&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div></div>
+
+<p><img src="https://cs50.harvard.edu/technology/notes/5/table.png" alt="Table" width="400" loading="lazy" referrerpolicy="no-referrer"></p>
+
+<h2 id="implementing-google"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=38m52s" target="_blank" rel="noopener noreferrer">Implementing Google</a></h2>
+
+<ul>
+  <li>When you type google.com your browser adds “https://www.” to the beginning of the URL
+    <ul>
+      <li>As is needed to surf the web</li>
+    </ul>
+  </li>
+  <li>
+<code class="language-plaintext highlighter-rouge">curl</code> is a command ran in the terminal that behaves much like a browser
+    <ul>
+      <li>It sends a request like a browser and shows what html is returned
+<img src="https://cs50.harvard.edu/technology/notes/5/curl1.png" alt="curl1" width="400" loading="lazy" referrerpolicy="no-referrer">
+        <ul>
+          <li>Capital letter tags are a bit dated</li>
+          <li>Shows google.com is located at http://www.google.com
+<img src="https://cs50.harvard.edu/technology/notes/5/curl2.png" alt="curl2" width="400" loading="lazy" referrerpolicy="no-referrer">
+</li>
+          <li>The <code class="language-plaintext highlighter-rouge">-I</code> flag tells <code class="language-plaintext highlighter-rouge">curl</code> to return HTML headers
+            <ul>
+              <li>Includes status codes and other info humans normally don’t see</li>
+            </ul>
+          </li>
+          <li>Google’s server has been configured to redirect users to http://www.google.com</li>
+          <li>UTF-8 is unicode characters</li>
+        </ul>
+      </li>
+      <li>
+<code class="language-plaintext highlighter-rouge">curl http://www.google.com</code> returns a webpage that includes HTML and JavaScript
+<img src="https://cs50.harvard.edu/technology/notes/5/curl3.png" alt="curl3" width="400" loading="lazy" referrerpolicy="no-referrer">
+</li>
+    </ul>
+  </li>
+  <li>Searching for cats changes the URL to https://www.google.com followed by a large sequence of characters
+    <ul>
+      <li>Distilling this URL to https://www.google.com/search?q=cats leads to the same results
+        <ul>
+          <li>We can “create” a search engine using this info!</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="forms"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=48m2s" target="_blank" rel="noopener noreferrer">Forms</a></h2>
+
+<ul>
+  <li>
+<code class="language-plaintext highlighter-rouge">&lt;form&gt;&lt;/form&gt;</code> are form tags that take attributes for an action and a method</li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;!DOCTYPE html&gt;
+
+&lt;html&gt;
+    &lt;head&gt;
+        &lt;title&gt;search&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;form action=&quot;https://www.google.com/search&quot; method=&quot;get&quot;&gt;
+            &lt;input name=&quot;q&quot; type=&quot;text&quot;/&gt;
+            &lt;input type=&quot;submit&quot; text=&quot;Search&quot;/&gt;
+        &lt;/form&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div></div>
+<ul>
+  <li>
+<code class="language-plaintext highlighter-rouge">action=&quot;https://www.google.com/search&quot; method=&quot;get&quot;</code> means “get me https://www.google.com/search”</li>
+  <li>Inside the form, we can have <code class="language-plaintext highlighter-rouge">&lt;input/&gt;</code> tags
+    <ul>
+      <li>These can have name, type, value, and text attributes</li>
+    </ul>
+  </li>
+  <li>This implementation punts the searching to Google</li>
+  <li>The browser uses the HTML form to assemble a URL
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">https://www.google.com/search?q=cats</code></li>
+    </ul>
+  </li>
+  <li>
+<code class="language-plaintext highlighter-rouge">?</code> in the URL means “Hey Server! Here comes my HTTP parameters!”
+    <ul>
+      <li>A URL may have multiple parameters separated by <code class="language-plaintext highlighter-rouge">&amp;</code>
+</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="css0html"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=51m47s" target="_blank" rel="noopener noreferrer">css0.html</a></h2>
+
+<ul>
+  <li>Let’s make our webpages more pretty</li>
+  <li>CSS (Cascading Style Sheets) allows us to style our webpages
+    <ul>
+      <li>In contrast, HTML allows us to structure our webpages</li>
+    </ul>
+  </li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;!DOCTYPE html&gt;
+
+&lt;html lang=&quot;en&quot;&gt;
+    &lt;head&gt;
+        &lt;title&gt;css0&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;header style=&quot;font-size: large; text-align: center;&quot;&gt;
+            John Harvard
+        &lt;/header&gt;
+        &lt;main style=&quot;font-size: medium; text-align: center;&quot;&gt;
+            Welcome to my home page!
+        &lt;/main&gt;
+        &lt;footer style=&quot;font-size: small; text-align: center;&quot;&gt;
+            Copyright &amp;%169; John Harvard
+        &lt;/footer&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div></div>
+<ul>
+  <li>Here, inside <code class="language-plaintext highlighter-rouge">body</code>, we have three tags: <code class="language-plaintext highlighter-rouge">&lt;header&gt;&lt;/header&gt;</code>, <code class="language-plaintext highlighter-rouge">&lt;main&gt;&lt;/main&gt;</code>, and <code class="language-plaintext highlighter-rouge">&lt;footer&gt;&lt;/footer&gt;</code>
+    <ul>
+      <li>They include style attributes written in CSS
+        <ul>
+          <li>These are written as key-value pairs</li>
+          <li>In CSS, there is a property called <code class="language-plaintext highlighter-rouge">font-size</code>
+            <ul>
+              <li>CSS supports <code class="language-plaintext highlighter-rouge">small</code>, <code class="language-plaintext highlighter-rouge">medium</code>, <code class="language-plaintext highlighter-rouge">large</code>, and exact sizes such as <code class="language-plaintext highlighter-rouge">16px</code>
+</li>
+            </ul>
+          </li>
+          <li>
+<code class="language-plaintext highlighter-rouge">text-align: center;</code> centers the text</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>This example has some redundancy</li>
+</ul>
+
+<h2 id="dom"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=55m52s" target="_blank" rel="noopener noreferrer">DOM</a></h2>
+
+<ul>
+  <li>CSS supports the notion of a hierarchy
+<img src="https://cs50.harvard.edu/technology/notes/5/dom.png" alt="DOM" width="400" loading="lazy" referrerpolicy="no-referrer">
+    <ul>
+      <li>Rectangles here represent HTML tags or elements</li>
+      <li>Ovals represent text values</li>
+      <li>This is called a tree in Computer Science, much like a family tree</li>
+    </ul>
+  </li>
+  <li>When a browser receives a webpage, it builds a tree-like data structure in your computer’s RAM</li>
+  <li>Thus, in this case <code class="language-plaintext highlighter-rouge">header</code>, <code class="language-plaintext highlighter-rouge">main</code>, and <code class="language-plaintext highlighter-rouge">footer</code> are all child nodes of of the parent node <code class="language-plaintext highlighter-rouge">body</code>
+</li>
+</ul>
+
+<h2 id="css1html"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=58m48s" target="_blank" rel="noopener noreferrer">css1.html</a></h2>
+
+<ul>
+  <li>We can put the <code class="language-plaintext highlighter-rouge">text-align: center;</code> attribute on the <code class="language-plaintext highlighter-rouge">body</code> element so it will pass it on to its children (<code class="language-plaintext highlighter-rouge">header</code>, <code class="language-plaintext highlighter-rouge">main</code>, and <code class="language-plaintext highlighter-rouge">footer</code>)</li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;!DOCTYPE html&gt;
+
+&lt;html lang=&quot;en&quot;&gt;
+    &lt;head&gt;
+        &lt;title&gt;css1&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body style=&quot;text-align: center;&quot;&gt;
+        &lt;header style=&quot;font-size: large;&quot;&gt;
+            John Harvard
+        &lt;/header&gt;
+        &lt;main style=&quot;font-size: medium;&quot;&gt;
+            Welcome to my home page!
+        &lt;/main&gt;
+        &lt;footer style=&quot;font-size: small;&quot;&gt;
+            Copyright &amp;%169; John Harvard
+        &lt;/footer&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div></div>
+<ul>
+  <li>This is better design as we can change all the text alignment at once</li>
+</ul>
+
+<h2 id="css2html"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=1h1m11s" target="_blank" rel="noopener noreferrer">css2.html</a></h2>
+
+<ul>
+  <li>Combining HTML and CSS is generally frowned upon</li>
+  <li>Makes it hard to collaborate
+    <ul>
+      <li>One person can work on content (HTML)</li>
+      <li>The other on style (CSS)</li>
+    </ul>
+
+    <div class="language-plaintext highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code>&lt;!DOCTYPE html&gt;
+
+&lt;html lang=&quot;en&quot;&gt;
+    &lt;head&gt;
+        &lt;style&gt;
+
+            .centered
+            {
+                text-align: center;
+            }
+
+            .large
+            {
+                font-size: large;
+            }
+
+            .medium
+            {
+                font-size: medium;
+            }
+
+            .small
+            {
+                font-size: small;
+            }
+
+        &lt;/style&gt;
+        &lt;title&gt;css2&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body class=&quot;centered&quot;&gt;
+        &lt;header class=&quot;large&quot;&gt;
+            John Harvard
+        &lt;/header&gt;
+        &lt;main class=&quot;medium&quot;&gt;
+            Welcome to my home page!
+        &lt;/main&gt;
+        &lt;footer class=&quot;small&quot;&gt;
+            Copyright &amp;%169; John Harvard
+        &lt;/footer&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div>    </div>
+    <ul>
+      <li>
+<code class="language-plaintext highlighter-rouge">&lt;style&gt;</code> can be a tag as well as an attribute</li>
+      <li>
+<code class="language-plaintext highlighter-rouge">.centered</code> defines a class named <code class="language-plaintext highlighter-rouge">centered</code>
+        <ul>
+          <li>Anything with this class with have the style attribute <code class="language-plaintext highlighter-rouge">text-align: center;</code>
+</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="css3html"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=1h3m7s" target="_blank" rel="noopener noreferrer">css3.html</a></h2>
+
+<ul>
+  <li>We can even get rid of class attributes to further separate style from content</li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;!DOCTYPE html&gt;
+
+&lt;html lang=&quot;en&quot;&gt;
+    &lt;head&gt;
+        &lt;style&gt;
+
+            body
+            {
+                text-align: center;
+            }
+
+            header
+            {
+                font-size: large;
+            }
+
+            main
+            {
+                font-size: medium;
+            }
+
+            footer
+            {
+                font-size: small;
+            }
+
+        &lt;/style&gt;
+        &lt;title&gt;css3&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;header&gt;
+            John Harvard
+        &lt;/header&gt;
+        &lt;main&gt;
+            Welcome to my home page!
+        &lt;/main&gt;
+        &lt;footer&gt;
+            Copyright &amp;%169; John Harvard
+        &lt;/footer&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div></div>
+<ul>
+  <li>We can also give the tags CSS directly</li>
+  <li>Will look identical, but better design</li>
+</ul>
+
+<h2 id="css4html"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=1h5m5s" target="_blank" rel="noopener noreferrer">css4.html</a></h2>
+
+<ul>
+  <li>What if we remove the style altogether and store it elsewhere?</li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;!DOCTYPE html&gt;
+
+&lt;html lang=&quot;en&quot;&gt;
+    &lt;head&gt;
+        &lt;link href=&quot;css4.css&quot; rel=&quot;stylesheet&quot;/&gt;
+        &lt;title&gt;css4&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;header&gt;
+            John Harvard
+        &lt;/header&gt;
+        &lt;main&gt;
+            Welcome to my home page!
+        &lt;/main&gt;
+        &lt;footer&gt;
+            Copyright &amp;%169; John Harvard
+        &lt;/footer&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div></div>
+<ul>
+  <li>We have boiled the html down to its essence
+    <ul>
+      <li>No usage of style tags</li>
+    </ul>
+  </li>
+  <li>Note the <code class="language-plaintext highlighter-rouge">&lt;link/&gt;</code> tag with a <code class="language-plaintext highlighter-rouge">href</code> attribute of <code class="language-plaintext highlighter-rouge">css4.css</code> and a <code class="language-plaintext highlighter-rouge">rel</code> (relationship) attribute of <code class="language-plaintext highlighter-rouge">stylesheet</code>
+    <ul>
+      <li>This says “Hey Browser! Please link my stylesheet css4.css to this page!”</li>
+    </ul>
+  </li>
+  <li>In the same directory, we will have this stylesheet</li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>body
+{
+    text-align: center;
+}
+
+header
+{
+    font-size: large;
+}
+
+main
+{
+    font-size: medium;
+}
+
+footer
+{
+    font-size: small;
+}
+</code></pre></div></div>
+<ul>
+  <li>We have factored out the style to its own file
+    <ul>
+      <li>Easier for collaboration and sharing</li>
+      <li>Can use on multiple html pages</li>
+      <li>Can create different themes</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="closing-thoughts"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/web_development?t=1h7m24s" target="_blank" rel="noopener noreferrer">Closing Thoughts</a></h2>
+
+<ul>
+  <li>Web development is about writing code
+    <ul>
+      <li>Specifically, HTML, which builds the structure of a webpage</li>
+      <li>CSS allows us to fine tune the webpage’s aesthetics</li>
+    </ul>
+  </li>
+  <li>You can use these building blocks to further learn about web development on your own!</li>
+  <li>The underlying concepts are more important than details
+    <ul>
+      <li>A webpage is nothing more than a text file written in HTML, CSS, and maybe some JavaScript
+        <ul>
+          <li>This file can be uploaded to a server to put on the internet
+            <ul>
+              <li>You can sign up for a web host with data centers</li>
+              <li>All your files will go in a folder on the server so that the webpage can be accessed on the internet</li>
+            </ul>
+          </li>
+          <li>You can also buy a domain name and configure it to point to the web host</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>These building blocks are what allow you to put your content on the internet!</li>
+</ul>
+
+
+</main></body></html>

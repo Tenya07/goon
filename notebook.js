@@ -2,7 +2,9 @@
    in the public source. Drafts are account-scoped and never sent to an AI API. */
 const Notebook = (() => {
   const K = NotebookKnowledge;
-  const state = {mode:'notes', selected:'y1-cs50t:4', editing:false, query:'', course:'all', group:'all', system:'all', branch:'all', node:'html', edge:null, graphQuery:'', zoom:1, panX:0, panY:0};
+  const O = typeof NotebookOfficialNotes==='undefined'?{}:NotebookOfficialNotes;
+  const state = {mode:'notes', selected:'y1-cs50t:4', noteSource:'mine', editing:false, query:'', course:'all', group:'all', system:'all', branch:'all', node:'html', edge:null, graphQuery:'', zoom:1, panX:0, panY:0};
+  const officialScroll=new Map();
   let accountKey = null, drafts = {}, statuses = {}, timer = null, queue = Promise.resolve(), drag = null, positionsCache = new Map(), pendingGraph = null;
   const html = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const normalize = s => String(s||'').toLocaleLowerCase();
@@ -16,8 +18,9 @@ const Notebook = (() => {
     const key = 'study-notebook-drafts-v2:' + (sess?.email || 'local');
     if(accountKey===key) return;
     accountKey=key; drafts={}; statuses={};
+    officialScroll.clear();
     try { drafts=JSON.parse(localStorage.getItem(key)||'{}'); } catch(_) {}
-    Object.assign(state,{mode:'notes',selected:'y1-cs50t:4',editing:false,query:'',course:'all',node:'html',edge:null,group:'all',system:'all',branch:'all',graphQuery:''});
+    Object.assign(state,{mode:'notes',selected:'y1-cs50t:4',noteSource:'mine',editing:false,query:'',course:'all',node:'html',edge:null,group:'all',system:'all',branch:'all',graphQuery:''});
     try {const view=JSON.parse(localStorage.getItem(key+':view')||'{}');if(['notes','map','courses'].includes(view.mode))state.mode=view.mode;if(typeof view.selected==='string')state.selected=view.selected;}catch(_){}
   }
   function persistView(){if(!accountKey)return;try{localStorage.setItem(accountKey+':view',JSON.stringify({mode:state.mode,selected:state.selected}));}catch(_) {}}
@@ -99,7 +102,12 @@ const Notebook = (() => {
     const r=current(); if(!r)return '<div class="nb-map-empty">还没有课程。去「课程与进度」添加一门。</div>';
     state.selected=r.key;
     const text=textFor(r), concepts=conceptsFor(r), status=statuses[r.key], isLesson=r.index!==null;
-    return `<div class="nb-layout">${listHTML()}<article class="nb-sheet" aria-label="当前笔记"><header class="nb-sheet-head"><div class="nb-breadcrumb">${html(r.courseName)}</div><h3>${html(r.title)}</h3><div class="nb-sheet-tools"><div class="nb-segment"><button type="button" data-nb-edit="read" class="${!state.editing?'on':''}" aria-pressed="${!state.editing}">阅读</button><button type="button" data-nb-edit="write" class="${state.editing?'on':''}" aria-pressed="${state.editing}">编辑</button></div><div><span class="nb-save ${['failed','conflict','quota'].includes(status)?'bad':''}" role="status" id="nb-save-status">${html(saveLabel(r.key))}</span> <button type="button" class="nb-plain" data-nb-save>保存</button></div></div>${isLesson?`<div class="nb-progress"><label><input type="checkbox" data-wkwatch="${html(r.key)}" ${r.seen?'checked':''}>讲座已看</label><label><input type="checkbox" data-wkdone="${html(r.key)}" ${sylDone(r.course)[r.index]?'checked':''}>作业已完成</label></div>`:''}</header>${status==='conflict'?'<div class="nb-warning">这篇笔记在另一处更新过。这里保留了你的草稿，没有覆盖另一份内容。<br><button class="nb-plain" data-nb-copy>复制我的草稿</button><button class="nb-plain" data-nb-duplicate>将草稿另存为独立笔记</button></div>':''}${state.editing?`<div class="nb-write"><textarea id="nb-editor" aria-label="笔记正文" placeholder="写下课上学到的内容。支持原样代码、Markdown 标题和代码块。" spellcheck="false">${html(text)}</textarea></div>`:`<div class="nb-reader">${text?renderText(text):'<div class="nb-empty-note"><b>留一点自己的理解。</b><span>这一讲还没有笔记。课上讲过的知识仍会出现在知识网里。</span><button class="nb-chip" type="button" data-nb-edit="write">开始写笔记</button></div>'}</div>`}<footer class="nb-sheet-foot"><span id="nb-word-count">${text.length.toLocaleString()} 字符</span><span>${state.editing?'编辑时自动保存草稿 · Ctrl / ⌘ + S 保存':'代码与 HTML 均按原文显示'}</span></footer>${isLesson?`<div class="nb-context"><details><summary>本讲提纲 · ${html(r.week.en||'')}</summary>${r.week.goal?`<p>${html(r.week.goal)}</p>`:''}<ul>${(r.week.learn||[]).map(t=>`<li>${html(t)}</li>`).join('')}</ul></details>${concepts.length?`<div class="nb-chips">${concepts.map(n=>`<button class="nb-chip" type="button" data-nb-concept="${n.id}">${html(n.title)} ↗</button>`).join('')}</div><span class="nb-save">课上讲过不等于已经掌握。点击知识点，在网里查看关系。</span>`:'<p class="nb-save">本讲的知识关系尚未核对，不自动猜测连线。</p>'}</div>`:''}</article></div>`;
+    const official=r.seen?O[r.key]:null,readOfficial=!!(official&&state.noteSource==='official');
+    const sourceTabs=official?`<div class="nb-note-sources" aria-label="笔记来源"><button type="button" data-nb-source="mine" aria-pressed="${!readOfficial}">我的笔记</button><button type="button" data-nb-source="official" aria-pressed="${readOfficial}">官方笔记 <small>English</small></button></div>`:'';
+    const tools=readOfficial?`<div class="nb-sheet-tools"><span class="nb-save">官方英文正文 · 只读阅读副本</span><a class="nb-plain" href="${html(official.source)}" target="_blank" rel="noopener">打开官方原文 ↗</a></div>`:`<div class="nb-sheet-tools"><div class="nb-segment"><button type="button" data-nb-edit="read" class="${!state.editing?'on':''}" aria-pressed="${!state.editing}">阅读</button><button type="button" data-nb-edit="write" class="${state.editing?'on':''}" aria-pressed="${state.editing}">编辑</button></div><div><span class="nb-save ${['failed','conflict','quota'].includes(status)?'bad':''}" role="status" id="nb-save-status">${html(saveLabel(r.key))}</span> <button type="button" class="nb-plain" data-nb-save>保存</button></div></div>`;
+    const mine=state.editing?`<div class="nb-write"><textarea id="nb-editor" aria-label="笔记正文" placeholder="写下课上学到的内容。支持原样代码、Markdown 标题和代码块。" spellcheck="false">${html(text)}</textarea></div>`:`<div class="nb-reader">${text?renderText(text):'<div class="nb-empty-note"><b>留一点自己的理解。</b><span>这一讲还没有笔记。课上讲过的知识仍会出现在知识网里。</span><button class="nb-chip" type="button" data-nb-edit="write">开始写笔记</button></div>'}</div>`;
+    const body=readOfficial?`<iframe id="nb-official-frame" class="nb-official-frame" data-note-key="${html(r.key)}" src="${html(official.file)}" title="官方笔记 · ${html(official.title)}" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer"></iframe><footer class="nb-sheet-foot"><span>来源：CS50 · Harvard University · <a href="${html(official.license)}" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></span><span>阅读副本 ${html(official.retrieved)}${official.images?' · 插图需联网载入':''}</span></footer>`:`${mine}<footer class="nb-sheet-foot"><span id="nb-word-count">${text.length.toLocaleString()} 字符</span><span>${state.editing?'编辑时自动保存草稿 · Ctrl / ⌘ + S 保存':'代码与 HTML 均按原文显示'}</span></footer>`;
+    return `<div class="nb-layout">${listHTML()}<article class="nb-sheet" aria-label="当前笔记"><header class="nb-sheet-head"><div class="nb-breadcrumb">${html(r.courseName)}</div><h3>${html(r.title)}</h3>${sourceTabs}${tools}${isLesson?`<div class="nb-progress"><label><input type="checkbox" data-wkwatch="${html(r.key)}" ${r.seen?'checked':''}>讲座已看</label><label><input type="checkbox" data-wkdone="${html(r.key)}" ${sylDone(r.course)[r.index]?'checked':''}>作业已完成</label></div>`:''}</header>${status==='conflict'&&!readOfficial?'<div class="nb-warning">这篇笔记在另一处更新过。这里保留了你的草稿，没有覆盖另一份内容。<br><button class="nb-plain" data-nb-copy>复制我的草稿</button><button class="nb-plain" data-nb-duplicate>将草稿另存为独立笔记</button></div>':''}${body}${isLesson?`<div class="nb-context"><details><summary>本讲提纲 · ${html(r.week.en||'')}</summary>${r.week.goal?`<p>${html(r.week.goal)}</p>`:''}<ul>${(r.week.learn||[]).map(t=>`<li>${html(t)}</li>`).join('')}</ul></details>${concepts.length?`<div class="nb-chips">${concepts.map(n=>`<button class="nb-chip" type="button" data-nb-concept="${n.id}">${html(n.title)} ↗</button>`).join('')}</div><span class="nb-save">课上讲过不等于已经掌握。点击知识点，在网里查看关系。</span>`:'<p class="nb-save">本讲的知识关系尚未核对，不自动猜测连线。</p>'}</div>`:''}</article></div>`;
   }
   function relatedTo(id, edges) {return new Set([id,...edges.filter(e=>e.from===id||e.to===id).map(e=>e.from===id?e.to:e.from)]);}
   const taxonomyMatches=n=>(state.system==='all'||n.taxonomy.system===state.system)&&(state.branch==='all'||n.taxonomy.branch===state.branch);
@@ -163,6 +171,8 @@ const Notebook = (() => {
     return '<div class="nb-three" id="nb-three"><canvas tabindex="0" aria-label="三维知识网；可拖动旋转、缩放，也可用方向键旋转。"></canvas><div class="nb-3d-labels"></div><span class="nb-3d-orientation" aria-hidden="true">3D</span></div>';
   }
   function afterRender() {
+    const reader=document.getElementById('nb-official-frame');
+    if(reader){const restore=()=>{const point=officialScroll.get(reader.dataset.noteKey);if(point)try{reader.contentWindow.scrollTo(point.x,point.y);}catch(_){} };reader.addEventListener('load',restore,{once:true});}
     if(typeof NotebookGraph3D==='undefined')return;
     const container=document.getElementById('nb-three');
     if(!container||!pendingGraph){NotebookGraph3D.dispose();return;}
@@ -214,19 +224,20 @@ const Notebook = (() => {
     };
     queue=queue.then(write,write);return queue;
   }
-  function select(key) {save();state.selected=key;state.mode='notes';state.editing=false;persistView();render();}
+  function select(key) {save();state.selected=key;state.mode='notes';state.noteSource='mine';state.editing=false;persistView();render();}
   function setMode(mode){if(state.mode==='courses'&&openWk)wknCommit(openWk);save();state.mode=mode;persistView();render();}
   function focusEditor(){const el=document.getElementById('nb-editor');if(el)el.focus({preventScroll:true});}
   function updateTransform(){const g=document.getElementById('nb-viewport');if(g)g.setAttribute('transform',`translate(${state.panX} ${state.panY}) translate(600 370) scale(${state.zoom}) translate(-600 -370)`);}
   function handleClick(e) {
-    const target=e.target.closest('[data-nb-mode],[data-nb-note],[data-nb-edit],[data-nb-save],[data-nb-new],[data-nb-node],[data-nb-edge],[data-nb-concept],[data-nb-zoom],[data-nb-copy],[data-nb-duplicate],[data-nb-system],[data-nb-tax-node]');
+    const target=e.target.closest('[data-nb-mode],[data-nb-note],[data-nb-edit],[data-nb-save],[data-nb-new],[data-nb-node],[data-nb-edge],[data-nb-concept],[data-nb-zoom],[data-nb-copy],[data-nb-duplicate],[data-nb-system],[data-nb-tax-node],[data-nb-source]');
     if(!target)return false;
     const d=target.dataset;
+    if(d.nbSource){save();beforeRender();state.noteSource=d.nbSource==='official'?'official':'mine';state.editing=false;render();return true;}
     if(d.nbSystem){state.system=d.nbSystem;state.branch=d.nbBranch||'all';state.group='all';state.graphQuery='';state.edge=null;const family=activeNodes().filter(taxonomyMatches);if(!family.some(n=>n.id===state.node))state.node=family[0]?.id||null;render();return true;}
     if(d.nbTaxNode){state.node=d.nbTaxNode;state.edge=null;state.graphQuery='';render();return true;}
     if(d.nbMode){setMode(d.nbMode);return true;}
     if(d.nbNote){select(d.nbNote);return true;}
-    if(d.nbEdit){if(d.nbEdit==='read')save();state.editing=d.nbEdit==='write';render();if(state.editing)focusEditor();return true;}
+    if(d.nbEdit){if(d.nbEdit==='read')save();state.noteSource='mine';state.editing=d.nbEdit==='write';render();if(state.editing)focusEditor();return true;}
     if('nbSave'in d){save();return true;}
     if('nbNew'in d){save();const id=uid(),key=`note:${id}`;mem.notes[id]={subject:'computer',text:'',createdAt:now()};lsSave();state.selected=key;state.editing=true;state.mode='notes';render();focusEditor();return true;}
     if(d.nbNode||d.nbConcept){state.node=d.nbNode||d.nbConcept;state.edge=null;if(d.nbConcept){save();state.mode='map';state.group='all';state.system='all';state.branch='all';state.graphQuery='';persistView();}render();return true;}
@@ -253,5 +264,6 @@ const Notebook = (() => {
   document.addEventListener('pointerdown',e=>{const svg=e.target.closest('#nb-network');if(!svg||e.target.closest('.nb-node,.nb-edge'))return;const rect=svg.getBoundingClientRect();drag={id:e.pointerId,x:e.clientX,y:e.clientY,px:state.panX,py:state.panY,scale:Math.max(1200/rect.width,740/rect.height)};svg.setPointerCapture(e.pointerId);});
   document.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;state.panX=drag.px+(e.clientX-drag.x)*drag.scale;state.panY=drag.py+(e.clientY-drag.y)*drag.scale;updateTransform();});
   document.addEventListener('pointerup',()=>{drag=null;});document.addEventListener('pointercancel',()=>{drag=null;});
-  return {get mode(){loadDrafts();return state.mode;},render:renderWorkspace,tabs,handleClick,save,select,activeNodes,activeEdges,graphData,afterRender};
+  function beforeRender(){const reader=document.getElementById('nb-official-frame');if(reader)try{if(reader.contentDocument?.readyState==='complete'&&reader.contentDocument.querySelector('main'))officialScroll.set(reader.dataset.noteKey,{x:reader.contentWindow.scrollX,y:reader.contentWindow.scrollY});}catch(_){} }
+  return {get mode(){loadDrafts();return state.mode;},render:renderWorkspace,tabs,handleClick,save,select,activeNodes,activeEdges,graphData,beforeRender,afterRender};
 })();

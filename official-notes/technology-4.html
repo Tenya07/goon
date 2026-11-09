@@ -1,0 +1,528 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src https:; base-uri 'none'; form-action 'none'"><title>Security · CS50 official notes</title><link rel="stylesheet" href="reader.css?v=20261109"></head><body><header class="credit"><div class="eyebrow">CS50 / OFFICIAL LECTURE NOTES</div><p>CS50 · Harvard University · David J. Malan<br><a href="https://cs50.harvard.edu/technology/notes/4/" target="_blank" rel="noopener noreferrer">官方原文 ↗</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-NC-SA 4.0</a> · 阅读副本 2026-11-09</p><p>保留官方英文正文；调整排版、移除站点导航及脚本、转换相对链接。未翻译正文；本阅读副本同样采用 CC BY-NC-SA 4.0。非官方站点，不代表课程方背书。</p><p class="archive">CS50T 为官方存档课程；本副本保留原讲义的历史内容，具体软件界面与服务现状请以当前官方资料为准。</p></header><main>
+
+                    <h1 id="security">Security</h1>
+
+<p>by Spencer Tiberi</p>
+
+<h2 id="introduction"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=0m1s" target="_blank" rel="noopener noreferrer">Introduction</a></h2>
+
+<ul>
+  <li>Our data is under constant threat, but how can we defend ourselves?</li>
+</ul>
+
+<h2 id="privacy"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=0m22s" target="_blank" rel="noopener noreferrer">Privacy</a></h2>
+
+<ul>
+  <li>Keeping people away from things you don’t want them to see</li>
+  <li>Computers are among the lease secure devices you own
+    <ul>
+      <li>Data or files are stored on them as 0s and 1s
+        <ul>
+          <li>Can be financial info, photos, etc.</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="deleting-files"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=1m13s" target="_blank" rel="noopener noreferrer">Deleting Files</a></h2>
+
+<ul>
+  <li>What does it mean to delete a file off of a hard drive?
+    <ul>
+      <li>Visually, it disappears from a desktop or folder</li>
+    </ul>
+  </li>
+  <li>Files are stored on a computer as 0s and 1s</li>
+  <li>Some space needs to be allocated for the file</li>
+  <li>The operating system has a file that keeps track of files an their location on disk</li>
+  <li>Graphically, when a file is deleted, it moves to the trash (or recycle bin)
+    <ul>
+      <li>It can still be easily revived from here, until you empty the trash</li>
+    </ul>
+  </li>
+  <li>However, an operating system doesn’t actually delete it from the hard drive
+    <ul>
+      <li>It simply forgets the location and existence of the file!</li>
+      <li>One can theoretically recover data by looking for familiar patterns of bits</li>
+    </ul>
+  </li>
+  <li>So how do we delete more securely?
+    <ul>
+      <li>Re-saving a file with overridden information actually could not override the old bits but rather create more 0s and 1s stored on a hard drive!</li>
+      <li>Special software can wipe data off of a hard drive</li>
+    </ul>
+  </li>
+  <li>Who do computers have this obvious flaw with deleting?
+    <ul>
+      <li>What if we accidentally delete a file?
+        <ul>
+          <li>This structure allows for recovery</li>
+        </ul>
+      </li>
+      <li>Wiping data also takes a lot of time, so it’s much faster to just forget locations of data</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="cookies"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=7m30s" target="_blank" rel="noopener noreferrer">Cookies</a></h2>
+
+<ul>
+  <li>A feature supported by HTTP</li>
+  <li>Little values a web server puts on a user’s browser</li>
+  <li>Used to remember if a user has visited a website before
+    <ul>
+      <li>Allows you to not have to log in every time you visit or refresh a page
+        <ul>
+          <li>When you log into a web server, a cookie is planted on your browser</li>
+        </ul>
+      </li>
+      <li>Stored in a database</li>
+      <li>Browser will send value to web server to remind of previous login</li>
+    </ul>
+  </li>
+  <li>When we make a request we send:
+    <div class="language-plaintext highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code>GET / HTTP/1.1
+Host: example.com
+</code></pre></div>    </div>
+  </li>
+  <li>We receive:
+    <div class="language-plaintext highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code>HTTP/1.1 200 OK
+Set-Cookie: session=29823bf3-075a-433a-8754-707d05c418ab
+</code></pre></div>    </div>
+    <ul>
+      <li>The server gives us a cookie.</li>
+    </ul>
+  </li>
+  <li>A cookie is like an ink-based hand stamp for an amusement park or club</li>
+  <li>Wireless information can be intercepted
+    <ul>
+      <li>What if a hacker could obtain the cookie
+        <ul>
+          <li>Session hijacking attack</li>
+          <li>If you have already logged in, hacker can pretend to be you</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>Encryption scrambles this value so hackers cannot easily use it</li>
+  <li>Browser history remembers everywhere you’ve been and everything you’ve done there
+    <ul>
+      <li>Convenient if you want to recall a website you’ve visited
+        <ul>
+          <li>But, so can anyone else with access to your browser</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>Can clear browser history and cookies
+    <ul>
+      <li>History likely not securely scrubbed</li>
+      <li>Will protect you from nosey friends</li>
+      <li>Websites will forget you visited as the cookies will be deleted as well!</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="incognito-mode"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=17m12s" target="_blank" rel="noopener noreferrer">Incognito Mode</a></h2>
+
+<ul>
+  <li>Can open up a typically different colored browser window</li>
+  <li>Use if you want history automatically removed</li>
+  <li>Useful when building a website as sometimes you want a browser to forget old iterations of your website build</li>
+</ul>
+
+<h2 id="authentication"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=18m41s" target="_blank" rel="noopener noreferrer">Authentication</a></h2>
+
+<ul>
+  <li>All of this assumes you log in</li>
+  <li>If you don’t use a passcode to protect your device, anyone can pretend to be you
+    <ul>
+      <li>What if you lose your phone or device?</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="passwords"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=20m6s" target="_blank" rel="noopener noreferrer">Passwords</a></h2>
+
+<ul>
+  <li>On a phone could only be a few digits
+    <ul>
+      <li>Not super secure</li>
+      <li>__ __ __ __
+        <ul>
+          <li>With numbers, each space has 10 options</li>
+          <li>10 x 10 x 10 x 10 = 10,000 possibilities</li>
+          <li>0000-9999</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>On many smartphones, you will have to wait for an amount of time if you have entered a bad passcode
+    <ul>
+      <li>Slows down the process of someone guessing</li>
+    </ul>
+  </li>
+  <li>Add more digits or letters of the alphabet</li>
+  <li>Using a-z, A-Z, 0-9</li>
+  <li>__ __ __ __</li>
+  <li>Each space now has 62 options (26 + 26 + 10)</li>
+  <li>62 x 62 x 62 x 62 = 14,776,336 possibilities</li>
+  <li>Maybe you’re super secure and you have a 20-char password
+    <ul>
+      <li>You could forget it</li>
+      <li>Annoying to type in repetitively</li>
+    </ul>
+  </li>
+  <li>No one fits all
+    <ul>
+      <li>Short = bad, longer = good</li>
+      <li>Don’t use popular words and phrases
+        <ul>
+          <li>Hackers will look for words or common phrases</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>Most common Passwords
+    <ol>
+      <li>123456</li>
+      <li>123456789</li>
+      <li>qwerty</li>
+      <li>12345678</li>
+      <li>111111</li>
+      <li>1234567890</li>
+      <li>1234567</li>
+      <li>password</li>
+      <li>123123</li>
+      <li>987654321</li>
+    </ol>
+  </li>
+  <li>Hackers have dictionaries of bad passwords that they can search through and try</li>
+  <li>Random passwords
+    <ul>
+      <li>Usually have to confirm so it can be hard to replicate</li>
+    </ul>
+  </li>
+  <li>Using numbers to represent letter is common
+    <ul>
+      <li>1 for l</li>
+      <li>4 for A</li>
+    </ul>
+  </li>
+  <li>It’s suggested you mix uppercase, lowercase, and and throw in numbers
+    <ul>
+      <li>Good to use misspellengs</li>
+    </ul>
+  </li>
+  <li>Don’t put your post-it with your password on your monitor!</li>
+  <li>Constant password changes can be a net negative
+    <ul>
+      <li>Can encourage easier passwords to help with memorization</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="password-resetting"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=30m49s" target="_blank" rel="noopener noreferrer">Password Resetting</a></h2>
+
+<ul>
+  <li>What if you forget your password?
+    <ul>
+      <li>Often can click on a link to reset your password
+        <ul>
+          <li>Asks you to type email address or username</li>
+        </ul>
+      </li>
+      <li>Typically, you get an email with a link
+        <ul>
+          <li>Hopefully this goes back to the same website!</li>
+          <li>It likely has a random value in the URL</li>
+        </ul>
+      </li>
+      <li>Once back at the website, you update your password</li>
+    </ul>
+  </li>
+  <li>The website has a database
+    <ul>
+      <li>It generated a random number and stored it with a note indicating password recovery</li>
+      <li>The website assumes that anyone who has access to this value and to the user’s email is you</li>
+    </ul>
+  </li>
+  <li>Typically, tech staff can’t tell you what your password is
+    <ul>
+      <li>Odds are your password is encrypted (scrambled) or, more technically, hashed in their database</li>
+    </ul>
+  </li>
+  <li>Getting a password in email means that the password are not hashed or encrypted!
+    <ul>
+      <li>Also, sending a password over email opens that email to interception</li>
+      <li>This is a red flag if a website does this</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="using-the-same-password"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=35m52s" target="_blank" rel="noopener noreferrer">Using The Same Password</a></h2>
+
+<ul>
+  <li>You may have a favorite password that you reuse
+    <ul>
+      <li>Upside is that it’s convenient</li>
+    </ul>
+  </li>
+  <li>However, what if one of the websites are hacked?
+    <ul>
+      <li>A hacker may try to use the password on other websites to see what she or he can get into!</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="password-managers"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=37m15s" target="_blank" rel="noopener noreferrer">Password Managers</a></h2>
+
+<ul>
+  <li>Difficult to remember all these passwords</li>
+  <li>Software called password managers exist that store on your phone or hard drive all usernames and passwords in an encrypted way
+    <ul>
+      <li>You have a master password that logs you into everywhere!
+        <ul>
+          <li>Store it physically in somewhere like a safety deposit box</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>Password managers create long random passwords and will log in for you
+    <ul>
+      <li>All websites have different passwords!</li>
+    </ul>
+  </li>
+  <li>However, if you lose the master password, you cannot get the accounts back!</li>
+</ul>
+
+<h2 id="two-factor-authentication"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=39m22s" target="_blank" rel="noopener noreferrer">Two Factor Authentication</a></h2>
+
+<ul>
+  <li>First factor is a password
+    <ul>
+      <li>Historically, something “only” the user knows</li>
+      <li>Can be guessed</li>
+    </ul>
+  </li>
+  <li>Second factor should be fundamentally different
+    <ul>
+      <li>Should be something you have
+        <ul>
+          <li>An RSA device displays a unique value that is synced with a server
+<img src="https://cs50.harvard.edu/technology/notes/4/rsa.png" alt="RSA" width="400px" loading="lazy" referrerpolicy="no-referrer">
+            <ul>
+              <li>This number needs to be typed in too!</li>
+              <li>As long as this device isn’t stolen by someone with your password, they can’t get in as easily</li>
+            </ul>
+          </li>
+          <li>Phones now run software that allows you to get a code and type them in</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>Should think about what websites you care about the most and enable two factor authentication
+    <ul>
+      <li>Some companies can use sms (text messages)</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="network-security"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=43m31s" target="_blank" rel="noopener noreferrer">Network security</a></h2>
+
+<ul>
+  <li>So many of our current networks are wireless
+    <ul>
+      <li>You probably been conditioned to look for free wifi
+        <ul>
+          <li>Sometimes still might not connect for various reasons</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>If the wireless connection has not padlock (no password to log in) the connection is not secure
+    <ul>
+      <li>You may still visit https or secure websites</li>
+      <li>However, everything you do on http sites can be seen</li>
+    </ul>
+  </li>
+  <li>What to do?
+    <ul>
+      <li>Don’t use that network</li>
+      <li>Use a VPN (Virtual Private Network)
+        <ul>
+          <li>Connection to internet is encrypted
+<img src="https://cs50.harvard.edu/technology/notes/4/vpn1.png" alt="VPN1" width="400px" loading="lazy" referrerpolicy="no-referrer">
+            <ul>
+              <li>With an unsecured connection, anyone can access your data</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="vpn"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=46m57s" target="_blank" rel="noopener noreferrer">VPN</a></h2>
+
+<ul>
+  <li>First establish encrypted connection to a server and let this server communicate for you
+    <ul>
+      <li>The connection between the VPN server and website can still be insecure!</li>
+    </ul>
+  </li>
+  <li>Because we are encrypting data through an algorithm, using a VPN can slow down speed</li>
+</ul>
+
+<h2 id="firewall"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=49m19s" target="_blank" rel="noopener noreferrer">Firewall</a></h2>
+
+<ul>
+  <li>A physical firewall is a wall between connected buildings that prevents the spread of fire</li>
+  <li>In the world of computer science, a firewall is software that looks at IP addresses and helps keep bad guys out and user data inside</li>
+  <li>Helps prevent people from accessing your computer</li>
+</ul>
+
+<h2 id="encryption"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=51m4s" target="_blank" rel="noopener noreferrer">Encryption</a></h2>
+
+<ul>
+  <li>Suppose I want to send a secret message for “HI”
+    <ul>
+      <li>HI ➟ IJ</li>
+      <li>Change each letter by 1</li>
+      <li>The recipient needs to know how it changed to revert</li>
+    </ul>
+  </li>
+  <li>Plaintext ➟ Cyphertext ➟ Plaintext
+    <ul>
+      <li>HI ➟ IJ ➟ HI</li>
+    </ul>
+  </li>
+  <li>This is called a caesar cypher
+    <ul>
+      <li>Rotational cyphers are not that secure
+        <ul>
+          <li>Can be guessed easily</li>
+          <li>Not used for internet encryption</li>
+        </ul>
+      </li>
+      <li>For this to work, recipient needs the key
+        <ul>
+          <li>To know the key, we need to agree in advance
+            <ul>
+              <li>Can’t send it encrypted as well as they need the key!</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="public-key-cryptography"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=54m44s" target="_blank" rel="noopener noreferrer">Public Key Cryptography</a></h2>
+
+<ul>
+  <li>The last example with a caesar cypher is secret-key cryptography
+    <ul>
+      <li>Only one key</li>
+    </ul>
+  </li>
+  <li>In public key cryptography there are two keys, one public and one private
+    <ul>
+      <li>Mathematical relationship between them</li>
+      <li>Use public key to encrypt, private key to decrypt
+<img src="https://cs50.harvard.edu/technology/notes/4/alicebob.png" alt="Alice and Bob" width="400px" loading="lazy" referrerpolicy="no-referrer">
+</li>
+      <li>Bob’s private key can undo the effects of his public key</li>
+      <li>When Bob responds…
+<img src="https://cs50.harvard.edu/technology/notes/4/bob.png" alt="Bob Response" width="400px" loading="lazy" referrerpolicy="no-referrer">
+</li>
+      <li>Bob sends a message using Alice’s public key</li>
+    </ul>
+  </li>
+  <li>Your browser has its own public and private keys
+    <ul>
+      <li>So does websites like Google and Amazon
+        <ul>
+          <li>This allows them to communicate securely with you</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>Often this processes is used to exchange a secret key</li>
+</ul>
+
+<h2 id="phishing"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=58m28s" target="_blank" rel="noopener noreferrer">Phishing</a></h2>
+
+<ul>
+  <li>These kind of attacks have become so prevent that the following has been posted around Harvard’s campus
+<img src="https://cs50.harvard.edu/technology/notes/4/phishing.png" alt="phishing" width="400px" loading="lazy" referrerpolicy="no-referrer">
+</li>
+  <li>Phishing attacks are when an adversary sends a somewhat official-looking email
+    <ul>
+      <li>May contain a link asking for a password or account info</li>
+      <li>The email may contain an elaborate backstory “justifying” the request</li>
+      <li>The malicious email is trying to obtain information from you</li>
+    </ul>
+  </li>
+  <li>Odds are that the link provided doesn’t go to the website being claimed
+    <ul>
+      <li>Can go to a website that looks legit
+        <ul>
+          <li>People can just copy HTML</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>Results in giving up private information</li>
+  <li>It’s healthy to distrust most email you get
+    <ul>
+      <li>Don’t follow links, type in the address for the company yourself</li>
+      <li>Sketchy emails may have typographical errors</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="malware"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=1h2m10s" target="_blank" rel="noopener noreferrer">Malware</a></h2>
+
+<ul>
+  <li>Malicious software can also be sent via email</li>
+  <li>Windows is particularly vulnerable</li>
+  <li>Software can be injected into your browser and your computer to erase your hard drive, make your computer send spam, or hold your data hostage</li>
+  <li>Some malware encrypts your data and asks for large sums of money to get the key to decrypt it
+    <ul>
+      <li>Key could not even work!</li>
+      <li>This is called ransomware</li>
+    </ul>
+  </li>
+  <li>Malware can ultimately do anything on your computer</li>
+</ul>
+
+<h2 id="trust"><a href="https://video.cs50.net/cscie1a/2017/fall/lectures/security?t=1h3m53s" target="_blank" rel="noopener noreferrer">Trust</a></h2>
+
+<ul>
+  <li>At the end of the day, all of security and privacy boils down to trust
+    <ul>
+      <li>People around you</li>
+      <li>Algorithms/software</li>
+      <li>Manufacturers</li>
+    </ul>
+  </li>
+  <li>We’ve downloaded software with trust that it will only do what it claims
+    <ul>
+      <li>Word could log your key strokes</li>
+      <li>Chrome could monitor you even when not on Google’s website</li>
+      <li>Snapchat could not delete posts after being seen</li>
+    </ul>
+  </li>
+  <li>There have been cases where software was written to cover tracks of being monitored!</li>
+  <li>Who’s to say the software we’re using is actually doing what we say?</li>
+  <li>It’s east to curl up into a ball and worry, but we need to decide who to trust</li>
+  <li>Security measures make it more difficult for someone to be malicious, but ultimately they can’t guarantee privacy</li>
+  <li>You have to decide what data you’re comfortable with storing, what you view on the internet, who to trust, and how much to trust them</li>
+</ul>
+
+
+</main></body></html>
