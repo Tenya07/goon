@@ -20,8 +20,8 @@ const NotebookGraph3D = (() => {
       z:rotated.z,depth,scale:clamp(distance/depth,.48,2.2)};
   }
   function layout(nodes,edges,groups) {
-    const key=nodes.map(n=>n.id).join('|');if(layouts.has(key))return layouts.get(key);
-    const names=Object.keys(groups),centers=[[-130,90,130],[170,90,-90],[-190,-80,-120],[120,-130,-150],[20,-150,160],[160,90,160]];
+    const key=nodes.map(n=>n.id+':'+n.group).join('|');if(layouts.has(key))return layouts.get(key);
+    const names=Object.keys(groups),centers=[[-130,90,130],[170,90,-90],[-190,-80,-120],[120,-130,-150],[20,-150,160],[160,90,160],[0,190,-50]];
     const points=new Map(nodes.map((n,i)=>{const c=centers[names.indexOf(n.group)]||[0,0,0],a=i*2.399963,b=Math.acos(1-2*((i*.61803398875)%1));return[n.id,{x:c[0]+80*Math.sin(b)*Math.cos(a),y:c[1]+80*Math.sin(b)*Math.sin(a),z:c[2]+80*Math.cos(b)}];}));
     for(let pass=0;pass<130;pass++) {
       const force=new Map(nodes.map(n=>[n.id,{x:0,y:0,z:0}]));

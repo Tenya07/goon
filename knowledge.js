@@ -68,7 +68,8 @@ const NotebookKnowledge = (() => {
   n('dict','字典 dict','python',P,2,'通过键访问值的映射；不等于 JSON 文本。',['dict','字典']);
   n('exception','异常','python',P,3,'程序运行中报告异常情况的机制，如 ValueError。',['Exception','ValueError','异常']);
   n('try','try / except','python',P,3,'捕获指定异常，以便处理失败或重新请求输入。',['try:','except']);
-  n('module','模块与 import','python',P,4,'模块提供可复用的代码，通过 import 在程序中使用。',['import ','模块','library'],'#libraries');
+  n('library','库 library','python',P,4,'可复用代码的统称，可以由自己或他人编写。Python 有自带的标准库，也可安装第三方库；library 不是 Python 独有的概念。',['library','libraries','liblary','库'],'#libraries');
+  n('module','模块与 import','python',P,4,'模块组织可复用的代码，import 是导入模块或其中名称的语句。库是较宽泛的称呼，模块与包是组织代码的方式，不是三个完全同级的东西。',['import ','模块'],'#libraries');
   n('random','random','python',P,4,'标准库模块，提供 choice、randint 等伪随机操作。',['random','randint','choice'],'#random');
   n('argv','sys.argv','python',P,4,'命令行参数列表。第 0 项通常是脚本名，其余项通常是文本参数。',['sys.argv','argv'],'#command-line-arguments');
   n('package','包与 pip','python',P,4,'第三方包可以用 pip 安装；安装和在代码中 import 是不同操作。',['pip','PyPI','package','cowsay'],'#packages');
@@ -134,6 +135,9 @@ const NotebookKnowledge = (() => {
   e('loop','boolean','while 检查真假','while 会反复检查条件的真假；for 则从可迭代对象取得元素。',P,2);
   e('try','exception','捕获指定异常','except 处理相应异常；应避免把所有错误都无差别吞掉。',P,3);
   e('module','function','可以提供函数','导入模块后可以调用它公开的函数；模块还可能提供常量和其他对象。',P,4);
+  e('library','module','可通过模块组织','library 是可复用代码的宽泛称呼；在 Python 课堂中，通过模块与 import 来组织和使用这些代码。',P,4,'#libraries');
+  e('library','random','标准库中的例子','random 是 Python 标准库里的模块；随 Python 提供，不需要另外用 pip 安装。',P,4,'#random');
+  e('library','requests','第三方库的例子','requests 是第三方 HTTP 客户端库，课程使用 pip 安装，再在 Python 代码中 import。它不是标准库。',P,4,'#apis');
   e('module','random','标准库实例','random 是 Python 标准库中的模块之一，不必先用 pip 安装。',P,4);
   e('argv','list','是参数列表','sys.argv 是字符串列表，参数个数可用 len() 检查。',P,4);
   e('package','requests','可安装的包','requests 是需要安装的第三方包，不属于 Python 标准库。',P,4);
@@ -141,5 +145,42 @@ const NotebookKnowledge = (() => {
   e('api','http','可通过它提供','课程展示的是 HTTP API；并非所有 API 都基于 HTTP。',P,4);
   e('api','json','可用它交换数据','HTTP API 经常返回 JSON，但也可以使用其他格式。',P,4);
   e('json','dict','可解析成','JSON 对象解析后可成为 Python 字典；JSON 文本本身不是 dict。',P,4);
-  return {nodes, edges, groups:{web:{label:'网页',color:'#79d8ca'},network:{label:'网络',color:'#85b9fc'},python:{label:'Python',color:'#e6c98e'},hardware:{label:'硬件',color:'#b4a4e8'},media:{label:'多媒体',color:'#dc9fa9'},security:{label:'安全',color:'#b3d18b'}}};
+  // A learning taxonomy is separate from semantic edges and lecture colors.
+  // Its containers are navigation, not extra facts/nodes or prerequisites.
+  const systems={
+    python:{label:'Python 编程',color:'#e6c98e',branches:{basics:'名称与函数',types:'数据类型',flow:'控制流程',errors:'异常处理',reuse:'库与代码复用',cli:'命令行输入'}},
+    web:{label:'Web 开发',color:'#79d8ca',branches:{structure:'网页结构 · HTML',style:'网页样式 · CSS',interaction:'网页交互 · JavaScript',client:'客户端与服务端'}},
+    network:{label:'计算机网络',color:'#85b9fc',branches:{address:'地址与名称',transport:'数据传输',application:'应用层通信'}},
+    hardware:{label:'计算机基础',color:'#b4a4e8',branches:{representation:'数据表示',components:'硬件组成',system:'系统软件'}},
+    media:{label:'数字媒体',color:'#dc9fa9',branches:{images:'图像与颜色',audio:'声音与音乐',video:'动态画面',compression:'数据压缩'}},
+    security:{label:'信息安全',color:'#b3d18b',branches:{crypto:'加密与传输保护',identity:'身份与凭据',access:'网络访问控制'}},
+    shared:{label:'跨体系概念',color:'#a6bad8',branches:{interface:'软件接口',format:'数据交换格式'}}
+  };
+  function classify(system,branch,entries){for(const [id,kind,scope=''] of entries){const node=nodes.find(n=>n.id===id);if(!node)throw Error('Unknown taxonomy node: '+id);node.taxonomy={system,branch,kind,scope};}}
+  classify('python','basics',[['variable','名称绑定'],['function','可调用代码单元','函数是通用编程概念；这里按 Python 课堂语境组织。'],['return','返回语句']]);
+  classify('python','types',[['string','内置文本类型'],['number','内置数值类型'],['boolean','内置布尔类型'],['list','内置序列类型'],['dict','内置映射类型']]);
+  classify('python','flow',[['condition','分支结构'],['loop','重复执行结构']]);
+  classify('python','errors',[['exception','运行时异常机制'],['try','异常处理语句']]);
+  classify('python','reuse',[['library','可复用代码的统称','库不是 Python 独有；这里展示 CS50P 中的库与使用方式。'],['module','代码组织 / 导入语句'],['random','标准库模块','随 Python 提供；不需要用 pip 安装。'],['package','代码组织 / 包安装工具','包与 pip 是组合知识点：包组织代码，pip 安装分发包；安装与 import 是不同步骤。'],['requests','第三方 HTTP 客户端库','不是 Python 标准库；需要在相应环境安装。']]);
+  classify('python','cli',[['argv','sys 模块中的字符串列表','sys 属于 Python 标准库；argv 是其中的列表，不是独立的库。']]);
+  classify('web','structure',[['html','标记语言'],['tags','元素的语法表示'],['link','HTML 超链接元素 / 属性'],['form','HTML 表单元素']]);
+  classify('web','style',[['css','样式表语言']]);
+  classify('web','interaction',[['javascript','编程语言','JavaScript 也可用于浏览器外；这里对应网页开发课。']]);
+  classify('web','client',[['browser','客户端应用'],['server','服务端程序']]);
+  classify('network','address',[['ip','网络层地址'],['domain','名称'],['dns','名称查询系统 / 协议'],['dhcp','网络配置协议'],['port','传输层端点标识'],['url','资源地址','也用于 Web 开发；不是网页内容或编程语言。']]);
+  classify('network','transport',[['packet','传输数据单位'],['router','网络转发设备'],['tcp','传输层协议'],['udp','传输层协议']]);
+  classify('network','application',[['http','应用层协议'],['https','受 TLS 保护的 HTTP','同时关联信息安全；不是另一种网页语言。'],['get','HTTP 请求方法'],['headers','HTTP 响应元信息'],['curl','命令行网络客户端','支持 HTTP 等多种协议；不是 Python 专属工具。'],['cookie','HTTP 状态管理机制','可用于会话与登录，安全课讨论了其风险；Cookie 本身不等于安全保护。']]);
+  classify('hardware','representation',[['binary','数字表示方式'],['encoding','文字与数字的编码约定']]);
+  classify('hardware','components',[['cpu','处理器'],['ram','运行时存储硬件'],['storage','持久化存储硬件']]);
+  classify('hardware','system',[['os','系统软件']]);
+  classify('media','images',[['pixels','图像单元 / 颜色表示'],['image','图像文件格式']]);
+  classify('media','audio',[['audio','声音的数字表示'],['mp3','音频编码格式'],['wav','音频容器格式'],['midi','音乐演奏事件 / 指令']]);
+  classify('media','video',[['video','随时间变化的画面']]);
+  classify('media','compression',[['compression','减少数据体积的技术']]);
+  classify('security','crypto',[['encryption','机密性保护技术'],['vpn','网络隧道技术','VPN 有多种实现；课堂语境为加密隧道。']]);
+  classify('security','identity',[['password','身份验证凭据'],['twofactor','身份验证方式'],['manager','凭据管理工具']]);
+  classify('security','access',[['firewall','流量访问控制工具']]);
+  classify('shared','interface',[['api','软件调用接口','跨语言概念；本课用 Python 调用 HTTP API，并不代表 API 只属于 Python。']]);
+  classify('shared','format',[['json','数据交换文本格式','跨语言格式；可以被解析成 Python 对象，但 JSON 本身不是 Python 的 dict。']]);
+  return {nodes, edges, systems, groups:{web:{label:'网页',color:'#79d8ca'},network:{label:'网络',color:'#85b9fc'},python:{label:'Python',color:'#e6c98e'},hardware:{label:'硬件',color:'#b4a4e8'},media:{label:'多媒体',color:'#dc9fa9'},security:{label:'安全',color:'#b3d18b'}}};
 })();
