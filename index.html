@@ -1,6 +1,7 @@
 <!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080b12"><style>[hidden]{display:none!important}</style>
 <title>五年学习本</title>
 <link rel="stylesheet" href="notebook.css?v=20261109-notes">
+<link rel="stylesheet" href="study-circle.css?v=20261110">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap">
 <style>
 :root{
@@ -622,11 +623,14 @@ body.locked .shell{visibility:hidden}
 <script src="official-notes.js?v=20261109"></script>
 <script src="graph-3d.js?v=20261109-systems"></script>
 <script src="notebook.js?v=20261109-notes"></script>
+<script src="circle-content.js?v=20261110"></script>
+<script src="study-circle.js?v=20261110"></script>
 <script>
 // ---------- 静态内容（来自五年学习表） ----------
 const SUBJECTS = [
  {id:'tt', k:'表', name:'课表', desc:'гнесинка · 点格子就能改'},
  {id:'home', k:'首', name:'总览', desc:'规矩、优先级、五年怎么摊'},
+ {id:'circle', k:'圈', name:'学习圈', desc:'按兴趣读一点，留下自己的小发现'},
  {id:'school', k:'校', name:'学校：歌 · 史 · 乐理', desc:'按课表，老师要的优先', plan:[
    '<b>规矩：</b>学校的课永远排第一。',
    '<b>乐理 / 和声：</b>课上什么，回家当天用自己的话重写一遍，再做几道同类题。考试前两周只复习错题本。不另买一套和学校打架的教材，除非老师指定。',
@@ -1646,7 +1650,7 @@ const CARS = {
 };
 
 // ---------- 存储：db 优先，没有就 localStorage ----------
-let db=null, mem={courses:{},notes:{},operas:{},words:{},classics:{},syllabus:{},hw:{},hist:{},shots:{},enwords:{},enlearn:{},plans:{},timetable:null};
+let db=null, mem={courses:{},notes:{},operas:{},words:{},classics:{},syllabus:{},hw:{},hist:{},shots:{},enwords:{},enlearn:{},plans:{},circle:{},timetable:null};
 const LS='study-notebook-v1';
 try{const s=localStorage.getItem(LS); if(s) mem=Object.assign(mem,JSON.parse(s));}catch(e){}
 function lsSave(){try{localStorage.setItem(LS,JSON.stringify(mem))}catch(e){}}
@@ -1806,7 +1810,7 @@ function connect(){
   const el=document.getElementById('sync');
   askApi=null;                      // 网站版没有「问 Claude」
   db=makeSupaDb(); el.textContent='连接数据库…';
-  for(const col of ['courses','notes','operas','words','classics','syllabus','hw','hist','shots','enwords','enlearn','plans']){
+  for(const col of ['courses','notes','operas','words','classics','syllabus','hw','hist','shots','enwords','enlearn','plans','circle']){
     db.collection(col).onSnapshot(snap=>{ const o={}; snap.docs.forEach(x=>{o[x.id]=x.data()}); mem[col]=o; lsSave(); render(); },e=>{});
   }
   db.doc('timetable/main').onSnapshot(snap=>{ if(snap.exists){mem.timetable=snap.data(); lsSave(); if(!editing) render();} },e=>{});
@@ -1825,7 +1829,7 @@ async function ttSave(t){
 }
 
 // ---------- 渲染 ----------
-let cur='tt', openOp=null, draft={}, editing=null, openLessons={}, openWk=null, openHw=null; // editing = {r,c}
+let cur=new URLSearchParams(location.search).get('view')==='circle'?'circle':'tt', openOp=null, draft={}, editing=null, openLessons={}, openWk=null, openHw=null; // editing = {r,c}
 let askApi=undefined, askState={}, askCtl=null; // askApi: undefined=还在问、null=用不了
 const ASK_ERR={
   not_granted:'你还没让这个页面用 Claude，所以这里暂时问不了。',
@@ -1861,15 +1865,17 @@ function render(){
   const ae=document.activeElement; const keep=ae&&ae.id&&ae.id!=='tt-edit'&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)?{id:ae.id,s:ae.selectionStart,e:ae.selectionEnd,top:ae.scrollTop}:null;
   const nav=document.getElementById('nav');
   nav.innerHTML=SUBJECTS.map(s=>{
-    const n=s.id==='home'?'':(bySubj('courses',s.id).length+bySubj('notes',s.id).length)||'';
+    const n=['home','circle'].includes(s.id)?'':(bySubj('courses',s.id).length+bySubj('notes',s.id).length)||'';
     return `<button class="${s.id===cur?'on':''}" data-go="${s.id}"><span class="k">${s.k}</span>${esc(s.name)}<span class="cnt">${n}</span></button>`;
   }).join('');
   const main=document.getElementById('main');
   main.classList.toggle('notebook-main',cur==='computer');
+  main.classList.toggle('circle-main',cur==='circle');
   main.innerHTML= cur==='home'?renderHome():cur==='tt'?renderTT():renderSubject(SUBJECTS.find(s=>s.id===cur));
   restoreDraft();
   growAll();
   Notebook.afterRender();
+  StudyCircle.afterRender();
   if(editing){const ta=document.getElementById('tt-edit'); if(ta&&document.activeElement!==ta){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);}}
   else if(keep){const el=document.getElementById(keep.id); if(el){el.focus({preventScroll:true}); try{if(keep.s!=null&&el.setSelectionRange)el.setSelectionRange(keep.s,keep.e);el.scrollTop=keep.top;}catch(e){}}}
 }
@@ -2270,7 +2276,7 @@ function renderCsWeek(){
 }
 
 // ── 备份 / 搬家 ──
-const BACKUP_COLS=['courses','notes','operas','words','classics','syllabus','hw','hist','shots','enwords','enlearn','plans'];
+const BACKUP_COLS=['courses','notes','operas','words','classics','syllabus','hw','hist','shots','enwords','enlearn','plans','circle'];
 function dumpAll(){
   const o={_app:'五年学习本',_at:now(),timetable:mem.timetable||null};
   for(const c of BACKUP_COLS) o[c]=mem[c]||{};
@@ -2331,6 +2337,7 @@ function renderBackup(){
 }
 
 function renderSubject(s){
+  if(s.id==='circle') return StudyCircle.render();
   if(s.id==='computer'&&Notebook.mode!=='courses') return Notebook.render();
   const courses=bySubj('courses',s.id), notes=bySubj('notes',s.id);
   const stName={want:'想学',doing:'在学',done:'学完'};
@@ -2790,7 +2797,7 @@ function enToggle(k){ // 词表里点一下：标已学 / 取消
 
 // 保留正在输入的表单内容（重渲染时不丢）
 function snapDraft(){ document.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type==='checkbox')return; draft[el.id]=el.value; }); }
-const noDraft=id=>id.startsWith('tt-')||id.startsWith('hw-')||id.startsWith('nb-'); // 这些是「当前这一格」的，不能跨格子沿用
+const noDraft=id=>id.startsWith('tt-')||id.startsWith('hw-')||id.startsWith('nb-')||id.startsWith('sf-'); // 这些是「当前这一格」的，不能跨格子沿用
 function restoreDraft(){ document.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{ if(el.type==='checkbox'||noDraft(el.id))return; if(draft[el.id]!==undefined && el.value!==draft[el.id]) el.value=draft[el.id]; }); }
 document.addEventListener('input',e=>{ if(e.target.id && !noDraft(e.target.id)) draft[e.target.id]=e.target.value;
   if(e.target.classList&&e.target.classList.contains('grow')) autoGrow(e.target); });
@@ -2944,6 +2951,7 @@ document.addEventListener('submit',async e=>{
 });
 document.addEventListener('click',async e=>{
   if(Notebook.handleClick(e)) return;
+  if(StudyCircle.handleClick(e)) return;
   if(dragged||e.target.closest('[data-mv],[data-mvrow]')) return;
   const pldel=e.target.closest('[data-pldel]'); if(pldel){ await store.del('plans',pldel.dataset.pldel); return; }
   if(editing && !e.target.closest('#tt-edit')){ ttCommit(); }
