@@ -1,4 +1,5 @@
 /* A quiet Moments-style timeline; styles stay inside the learning circle. */
+body:has(.circle-main){overflow-x:clip}body:has(.circle-main)::before{display:none}
 .main.circle-main{padding:28px 36px 70px;max-width:none;min-width:0;background:#e8ebe8}
 .sf-page{--sf-blue:#576b95;--sf-gray:#8b8e93;--sf-line:#eceeed;max-width:760px;margin:0 auto;background:#fff;color:#242729;font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;box-shadow:0 12px 55px #20382d09;min-width:0}
 .sf-page *{box-sizing:border-box}.sf-page button,.sf-page input,.sf-page textarea,.sf-page select{font:inherit}.sf-page button{cursor:pointer;touch-action:manipulation}.sf-page button:focus-visible,.sf-page a:focus-visible,.sf-page summary:focus-visible{outline:2px solid #07a75a;outline-offset:3px}.sf-page button:disabled{opacity:.6;cursor:default}.sf-page a{color:var(--sf-blue);text-decoration:none}.sf-page a:hover{text-decoration:underline}.sf-page h2,.sf-page h3{font-family:inherit;text-wrap:pretty}.sf-page input,.sf-page textarea,.sf-page select{color:#242729;background:#fff}
