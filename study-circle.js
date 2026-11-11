@@ -134,6 +134,7 @@ const StudyCircle = (() => {
   }
   const dateLabel=date=>/^\d{4}-\d{2}-\d{2}$/.test(date||'')?`${Number(date.slice(5,7))}月${Number(date.slice(8,10))}日`:'';
   function avatar(id){
+    if(id==='self')return '<img src="circle-profile/avatar.jpg" alt="我的头像" width="1080" height="1078">';
     const shapes={
       python:'<path d="M18 21h19v9H27v13H16V31h10V21"/><circle cx="32" cy="25" r="1"/><path d="M38 39H19v-9h10V17h11v12H30v10" opacity=".45"/>',
       network:'<circle cx="28" cy="28" r="17"/><ellipse cx="28" cy="28" rx="8" ry="17"/><path d="M12 23h32M12 33h32"/>',
@@ -147,8 +148,7 @@ const StudyCircle = (() => {
     return `<svg viewBox="0 0 56 56" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${shapes[id]||shapes.self}</svg>`;
   }
   function cover(){
-    const stars=Array.from({length:48},(_,i)=>`<circle cx="${(i*137+29)%800}" cy="${(i*59+7)%195}" r="${i%7===0?1.3:.65}" opacity="${.25+i%5*.12}"/>`).join('');
-    return `<svg class="sf-cover-art" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="月光下的蓝绿色群山与湖面"><defs><linearGradient id="sf-sky" x2="0" y2="1"><stop stop-color="#1b3548"/><stop offset="1" stop-color="#99b7ae"/></linearGradient><linearGradient id="sf-lake" x2="0" y2="1"><stop stop-color="#7c9f99"/><stop offset="1" stop-color="#254f58"/></linearGradient><radialGradient id="sf-moon"><stop stop-color="#eff0ce" stop-opacity=".28"/><stop offset="1" stop-color="#eff0ce" stop-opacity="0"/></radialGradient></defs><path fill="url(#sf-sky)" d="M0 0h800v300H0z"/><circle fill="url(#sf-moon)" cx="593" cy="65" r="80"/><circle fill="#e8ebcc" cx="593" cy="65" r="19"/><g fill="#ebf0dc">${stars}</g><path fill="#6b9290" d="m0 208 92-70 61 34 95-89 109 100 66-51 112 67 94-78 75 74 96-35v140H0Z"/><path fill="#416c72" d="m0 235 110-57 92 38 117-68 95 68 89-40 111 40 96-70 90 60v94H0Z"/><path fill="url(#sf-lake)" d="M0 229q180-8 388 11t412-8v68H0Z"/><g stroke="#d6dfc3" stroke-width="1" opacity=".3"><path d="M558 252h62m-75 7h91m-70 8h47m-71 8h93m-65 9h36"/></g><path fill="#183e49" d="m0 247 79-12 82 21 80 44H0Zm800-3-76-14-107 70h183Z"/><path fill="#d8e1cc" opacity=".15" d="m0 298 120-31 57 33Zm800-15-73-30-50 47h123Z"/></svg>`;
+    return `<img class="sf-cover-art sf-cover-photo" src="circle-profile/cover.png" width="511" height="688" alt="我的封面：傍晚的海岸、晚霞和沙滩" fetchpriority="high">`;
   }
   function card(p){
     const t=topic(p.topic),s=entry('state-'+p.id),r=entry('thought-'+p.id),thought=ui.thought===p.id;
@@ -178,7 +178,7 @@ const StudyCircle = (() => {
     const latest=C.posts.filter(p=>p.edition===C.edition),read=latest.filter(p=>entry('state-'+p.id).read).length;
     const hidden=C.posts.filter(p=>entry('state-'+p.id).hidden).length;
     return `<section class="sf-page" aria-label="学习圈"><header class="sf-topbar"><span>五年学习本</span><h2>学习圈</h2><button type="button" data-sf-action="compose" aria-label="写一条学习动态" aria-expanded="${ui.composer}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 7h4l2-3h4l2 3h4v13H4Z"/><circle cx="12" cy="13" r="4"/></svg></button></header>
-      <div class="sf-cover">${cover()}<div class="sf-cover-caption">在自己的节奏里，<br>一点点看见更大的世界。</div><div class="sf-profile"><strong>我的学习日常</strong><div class="sf-profile-avatar">${avatar('self')}</div></div></div>
+      <div class="sf-cover">${cover()}<div class="sf-profile"><strong>我的学习日常</strong><div class="sf-profile-avatar">${avatar('self')}</div></div></div>
       <div class="sf-signature">留一点好奇，给今天的自己。</div>
       <div class="sf-disclosure">学习手记为兴趣整理，不是他人真实动态 · meme 保留网络出处</div>
       <div class="sf-toolbar"><nav class="sf-views" aria-label="动态视图">${[['for-you','新一期'],['all','全部'],['saved','收藏'+(saved?' '+saved:'')],['mine','我写的']].map(([id,label])=>`<button type="button" data-sf-view="${id}" aria-pressed="${ui.view===id}">${label}</button>`).join('')}</nav><button type="button" class="sf-interest-toggle" data-sf-action="settings" aria-expanded="${ui.settings}">兴趣设置</button></div>
