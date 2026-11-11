@@ -67,7 +67,8 @@ const StudyCircle = (() => {
   }
   function allPosts(){
     const mine=Object.entries(entries()).filter(([,v])=>v?.type==='post'&&!v.deleted&&typeof v.text==='string').map(([id,v])=>({id,topic:C.topics.some(t=>t.id===v.topic)?v.topic:'python',title:'我的一条学习碎片',body:v.text.slice(0,2000),mine:true,createdAt:v.createdAt,sources:[]}));
-    return [...mine.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')),...C.posts.map(p=>({...p,edition:p.edition||C.archiveEdition}))];
+    const retained=(C.retiredPosts||[]).filter(p=>entry('state-'+p.id).saved||entry('thought-'+p.id).text).map(p=>({...p,retired:true}));
+    return [...mine.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')),...C.posts.map(p=>({...p,edition:p.edition||C.archiveEdition})),...retained];
   }
   function hash(s){let n=0;for(const c of s)n=(Math.imul(n,31)+c.charCodeAt(0))|0;return n>>>0;}
   function filtered(){
@@ -76,7 +77,7 @@ const StudyCircle = (() => {
       const s=entry('state-'+p.id);
       if(ui.view==='saved'&&!s.saved)return false;
       if(ui.view==='mine'&&!p.mine)return false;
-      if(['for-you','all'].includes(ui.view)&&(s.hidden||!prefs.includes(p.topic)))return false;
+      if(['for-you','all'].includes(ui.view)&&(p.retired||s.hidden||!prefs.includes(p.topic)))return false;
       if(ui.view==='for-you'&&(p.mine||p.edition!==C.edition))return false;
       if(ui.unread&&s.read)return false;
       if(ui.topic!=='all'&&p.topic!==ui.topic)return false;
@@ -105,6 +106,7 @@ const StudyCircle = (() => {
     return `<svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="${paths[name]||paths.arrow}"/></svg>`;
   };
   function visual(p){
+    if(p.kind==='meme'&&p.origin==='web'&&/^https:\/\//.test(p.image||''))return `<figure class="sf-meme sf-web-meme"><a href="${h(p.image)}" target="_blank" rel="noopener noreferrer" aria-label="放大原图：${h(p.title)}"><img src="${h(p.image)}" alt="${h(p.imageAlt)}" loading="lazy" referrerpolicy="no-referrer" data-sf-web-image></a><p class="sf-image-fallback" hidden>图片暂时加载不了，可以点下面的来源看原图。</p><figcaption><a href="${h(p.sourcePage)}" target="_blank" rel="noopener noreferrer">${h(p.attribution)}</a><a href="${h(p.image)}" target="_blank" rel="noopener noreferrer">放大原图 ↗</a></figcaption></figure>`;
     if(p.kind==='meme'&&/^circle-memes\/[a-z0-9-]+\.svg$/.test(p.image||''))return `<figure class="sf-meme"><img src="${h(p.image)}" alt="${h(p.imageAlt)}" width="540" height="350" loading="lazy"><figcaption>原创学习梗 · 情景示意 <a href="${h(p.image)}" download="${h(p.id)}.svg">保存梗图 ↧</a></figcaption></figure>`;
     const box=(type,inside)=>`<div class="sf-visual sf-v-${type}" aria-label="${h(p.title)}">${inside}</div>`;
     if(p.visual==='routes')return box('routes','<div><span>电脑</span><i>↔</i><span>平板</span><small>直连</small></div><div><span>电脑</span><i>↔</i><b>中转</b><i>↔</i><span>平板</span></div>');
@@ -152,16 +154,16 @@ const StudyCircle = (() => {
     const t=topic(p.topic),s=entry('state-'+p.id),r=entry('thought-'+p.id),thought=ui.thought===p.id;
     const text=ui.drafts[p.id]??r.text??'',noteSaved=!!mem.notes?.['circle-'+p.id];
     const action=(name,label,svg,extra='')=>`<button type="button" data-sf-action="${name}" data-sf-id="${h(p.id)}" ${extra}>${icon(svg)}${label}</button>`;
-    const isNew=!p.mine&&p.edition===C.edition;
+    const isNew=!p.mine&&!p.retired&&p.edition===C.edition;
     return `<article class="sf-card" id="sf-card-${h(p.id)}" style="--sf-tone:${t.color}">
       <div class="sf-avatar sf-avatar-${p.mine?'self':t.id}" aria-hidden="true">${avatar(p.mine?'self':t.id)}</div>
-      <div class="sf-card-content"><header class="sf-author"><strong>${p.mine?'我':h(t.author)}</strong><span>${h(t.name)}${isNew&&!s.read?' · 新':''}</span></header>
+      <div class="sf-card-content"><header class="sf-author"><strong>${p.mine?'我':h(p.publisher||t.author)}</strong><span>${p.origin==='web'?'网络 meme':h(t.name)}${isNew&&!s.read?' · 新':''}</span></header>
       <div class="sf-post-body"><h3>${h(p.title)}</h3>${p.body.split('\n').map(line=>`<p>${h(line)}</p>`).join('')}${p.code?`<pre><code>${h(p.code)}</code></pre>`:''}${visual(p)}
       ${!p.mine?`<details class="sf-reading" data-sf-expanded="${h(p.id)}" ${ui.expanded[p.id]?'open':''}><summary>${p.kind==='meme'?'梗背后的知识':'展开笔记与来源'}</summary>
         ${p.takeaway?`<div class="sf-takeaway"><p>${h(p.takeaway)}</p></div>`:''}
         ${p.prompt?`<details class="sf-question" data-sf-detail="${h(p.id)}" ${ui.answers[p.id]?'open':''}><summary>${h(p.prompt)}<span>点开看解释</span></summary><p>${h(p.answer)}</p></details>`:''}
-        <div class="sf-sources">${p.sources.length?p.sources.map(([label,url])=>`<a href="${h(url)}" target="_blank" rel="noopener noreferrer">${h(label)} ↗</a>`).join(''):p.kind==='meme'?'原创学习日常梗，不是事实记录':'原创学习方法建议'}</div><small>${h(lessonLabel(p))} · ${p.kind==='meme'?'原创改编，不是转载网友动态':'AI 整理，附参考资料'}</small></details>`:''}</div>
-      <div class="sf-card-meta"><span>${p.mine?h(fmt(p.createdAt))+' · 仅自己可见':dateLabel(p.edition)+'整理'}</span>${s.saved?'<span class="sf-saved-mark">已收藏</span>':''}
+        <div class="sf-sources">${p.sources.length?p.sources.map(([label,url])=>`<a href="${h(url)}" target="_blank" rel="noopener noreferrer">${h(label)} ↗</a>`).join(''):p.kind==='meme'?'原创学习日常梗，不是事实记录':'原创学习方法建议'}</div><small>${h(lessonLabel(p))} · ${p.origin==='web'?'网络原图；中文配文与梗意由这里补充':p.kind==='meme'?'原来的原创版本，仅在已收藏中保留':'AI 整理，附参考资料'}</small></details>`:''}</div>
+      <div class="sf-card-meta"><span>${p.mine?h(fmt(p.createdAt))+' · 仅自己可见':dateLabel(p.edition)+(p.origin==='web'?'收录':'整理')}</span>${s.saved?'<span class="sf-saved-mark">已收藏</span>':''}
         ${p.mine?'':action('read',s.read?'✓ 看过':'标为看过','',`class="sf-read" aria-pressed="${!!s.read}"`)}
         <button type="button" class="sf-menu-toggle" data-sf-action="menu" data-sf-id="${h(p.id)}" aria-label="更多操作：${h(p.title)}" aria-expanded="${ui.menu===p.id}">···</button>
         ${ui.menu===p.id?`<div class="sf-card-menu" aria-label="动态操作">${action('like',s.liked?'取消赞':'赞','heart',`aria-pressed="${!!s.liked}" aria-label="${s.liked?'取消喜欢':'喜欢'}：${h(p.title)}"`)}${action('thought','评论','chat',`aria-expanded="${thought}"`)}${action('save',s.saved?'已收藏':'收藏','save',`aria-pressed="${!!s.saved}" aria-label="${s.saved?'取消收藏':'收藏'}：${h(p.title)}"`)}${action('note',noteSaved?'已记入':'记笔记','note',noteSaved?'disabled':'')}${p.mine?'':action('hide','收起这条','')}</div>`:''}</div>
@@ -178,7 +180,7 @@ const StudyCircle = (() => {
     return `<section class="sf-page" aria-label="学习圈"><header class="sf-topbar"><span>五年学习本</span><h2>学习圈</h2><button type="button" data-sf-action="compose" aria-label="写一条学习动态" aria-expanded="${ui.composer}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 7h4l2-3h4l2 3h4v13H4Z"/><circle cx="12" cy="13" r="4"/></svg></button></header>
       <div class="sf-cover">${cover()}<div class="sf-cover-caption">在自己的节奏里，<br>一点点看见更大的世界。</div><div class="sf-profile"><strong>我的学习日常</strong><div class="sf-profile-avatar">${avatar('self')}</div></div></div>
       <div class="sf-signature">留一点好奇，给今天的自己。</div>
-      <div class="sf-disclosure">按你的兴趣编写 · 栏目手记不是他人真实动态</div>
+      <div class="sf-disclosure">学习手记为兴趣整理，不是他人真实动态 · meme 保留网络出处</div>
       <div class="sf-toolbar"><nav class="sf-views" aria-label="动态视图">${[['for-you','新一期'],['all','全部'],['saved','收藏'+(saved?' '+saved:'')],['mine','我写的']].map(([id,label])=>`<button type="button" data-sf-view="${id}" aria-pressed="${ui.view===id}">${label}</button>`).join('')}</nav><button type="button" class="sf-interest-toggle" data-sf-action="settings" aria-expanded="${ui.settings}">兴趣设置</button></div>
       ${ui.settings?`<section class="sf-settings"><p>选你想看的主题；取消兴趣不会删除收藏。</p>${C.topics.map(t=>`<label><input type="checkbox" data-sf-interest="${t.id}" ${prefs.includes(t.id)?'checked':''}><span>${h(t.name)}<small>${h(t.why)}</small></span></label>`).join('')}${hidden?`<button type="button" data-sf-action="restore">恢复收起的 ${hidden} 条</button>`:''}</section>`:''}
       <div class="sf-feed-tools"><label class="sf-search">${icon('search')}<input id="sf-search" type="search" value="${h(ui.query)}" placeholder="搜索动态" aria-label="搜索学习动态"></label><button type="button" data-sf-action="unread" aria-pressed="${ui.unread}">${ui.unread?'✓ ':''}只看没看过</button></div>
@@ -265,5 +267,6 @@ const StudyCircle = (() => {
   });
   document.addEventListener('toggle',e=>{const id=e.target.dataset?.sfDetail;if(id)ui.answers[id]=e.target.open;const expanded=e.target.dataset?.sfExpanded;if(expanded)ui.expanded[expanded]=e.target.open;},true);
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ui.menu){const id=ui.menu;ui.menu=null;repaint(`[data-sf-action="menu"][data-sf-id="${id}"]`);}});
+  document.addEventListener('error',e=>{if(e.target?.dataset?.sfWebImage!==undefined){e.target.hidden=true;const fallback=e.target.closest('figure')?.querySelector('.sf-image-fallback');if(fallback)fallback.hidden=false;}},true);
   return {render:renderFeed,handleClick,afterRender};
 })();
