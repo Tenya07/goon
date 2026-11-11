@@ -19,8 +19,11 @@ const StudyCircle = (() => {
   function entries(){loadAccount();return {...(mem.circle||{}),...pending};}
   const entry=id=>entries()[id]||{};
   function preferences(){
-    const selected=entry('preferences').topics;
-    return Array.isArray(selected)&&selected.some(id=>C.topics.some(t=>t.id===id))?C.topics.filter(t=>selected.includes(t.id)).map(t=>t.id):C.topics.map(t=>t.id);
+    const pref=entry('preferences'),selected=pref.topics;
+    if(!Array.isArray(selected)||!selected.some(id=>C.topics.some(t=>t.id===id)))return C.topics.map(t=>t.id);
+    // Make the newly requested column visible for existing accounts, once.
+    const chosen=pref.topicVersion===2?selected:[...selected,'meme'];
+    return C.topics.filter(t=>chosen.includes(t.id)).map(t=>t.id);
   }
   function persistPending(){
     try{localStorage.setItem(storageKey(),JSON.stringify(pending));return true;}
@@ -102,6 +105,7 @@ const StudyCircle = (() => {
     return `<svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="${paths[name]||paths.arrow}"/></svg>`;
   };
   function visual(p){
+    if(p.kind==='meme'&&/^circle-memes\/[a-z0-9-]+\.svg$/.test(p.image||''))return `<figure class="sf-meme"><img src="${h(p.image)}" alt="${h(p.imageAlt)}" width="540" height="350" loading="lazy"><figcaption>原创学习梗 · 情景示意 <a href="${h(p.image)}" download="${h(p.id)}.svg">保存梗图 ↧</a></figcaption></figure>`;
     const box=(type,inside)=>`<div class="sf-visual sf-v-${type}" aria-label="${h(p.title)}">${inside}</div>`;
     if(p.visual==='routes')return box('routes','<div><span>电脑</span><i>↔</i><span>平板</span><small>直连</small></div><div><span>电脑</span><i>↔</i><b>中转</b><i>↔</i><span>平板</span></div>');
     if(p.visual==='bottleneck')return box('bottleneck','<span>家里上传</span><i>→</i><b>最慢的一段</b><i>→</i><span>外面下载</span>');
@@ -131,6 +135,7 @@ const StudyCircle = (() => {
     const shapes={
       python:'<path d="M18 21h19v9H27v13H16V31h10V21"/><circle cx="32" cy="25" r="1"/><path d="M38 39H19v-9h10V17h11v12H30v10" opacity=".45"/>',
       network:'<circle cx="28" cy="28" r="17"/><ellipse cx="28" cy="28" rx="8" ry="17"/><path d="M12 23h32M12 33h32"/>',
+      meme:'<path d="M12 23 15 9l12 9h3l11-9 3 14q9 24-16 26Q3 47 12 23Z"/><path d="m18 29 5 3-5 3m20-6-5 3 5 3M23 41q5 5 10 0"/>',
       music:'<path d="M23 39V16l19-4v23M23 23l19-4"/><ellipse cx="18" cy="39" rx="6" ry="4"/><ellipse cx="37" cy="35" rx="6" ry="4"/>',
       english:'<path d="m12 39 10-24 10 24M16 31h12M36 28c9-4 11 8 0 7-5 0-3 7 3 4l3-2v-7"/>',
       ai:'<path d="m28 10 5 13 13 5-13 5-5 13-5-13-13-5 13-5Z"/><path d="m43 8 2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" opacity=".5"/>',
@@ -152,10 +157,10 @@ const StudyCircle = (() => {
       <div class="sf-avatar sf-avatar-${p.mine?'self':t.id}" aria-hidden="true">${avatar(p.mine?'self':t.id)}</div>
       <div class="sf-card-content"><header class="sf-author"><strong>${p.mine?'我':h(t.author)}</strong><span>${h(t.name)}${isNew&&!s.read?' · 新':''}</span></header>
       <div class="sf-post-body"><h3>${h(p.title)}</h3>${p.body.split('\n').map(line=>`<p>${h(line)}</p>`).join('')}${p.code?`<pre><code>${h(p.code)}</code></pre>`:''}${visual(p)}
-      ${!p.mine?`<details class="sf-reading" data-sf-expanded="${h(p.id)}" ${ui.expanded[p.id]?'open':''}><summary>展开笔记与来源</summary>
+      ${!p.mine?`<details class="sf-reading" data-sf-expanded="${h(p.id)}" ${ui.expanded[p.id]?'open':''}><summary>${p.kind==='meme'?'梗背后的知识':'展开笔记与来源'}</summary>
         ${p.takeaway?`<div class="sf-takeaway"><p>${h(p.takeaway)}</p></div>`:''}
         ${p.prompt?`<details class="sf-question" data-sf-detail="${h(p.id)}" ${ui.answers[p.id]?'open':''}><summary>${h(p.prompt)}<span>点开看解释</span></summary><p>${h(p.answer)}</p></details>`:''}
-        <div class="sf-sources">${p.sources.length?p.sources.map(([label,url])=>`<a href="${h(url)}" target="_blank" rel="noopener noreferrer">${h(label)} ↗</a>`).join(''):'原创学习方法建议'}</div><small>${h(lessonLabel(p))} · AI 整理，附参考资料</small></details>`:''}</div>
+        <div class="sf-sources">${p.sources.length?p.sources.map(([label,url])=>`<a href="${h(url)}" target="_blank" rel="noopener noreferrer">${h(label)} ↗</a>`).join(''):p.kind==='meme'?'原创学习日常梗，不是事实记录':'原创学习方法建议'}</div><small>${h(lessonLabel(p))} · ${p.kind==='meme'?'原创改编，不是转载网友动态':'AI 整理，附参考资料'}</small></details>`:''}</div>
       <div class="sf-card-meta"><span>${p.mine?h(fmt(p.createdAt))+' · 仅自己可见':dateLabel(p.edition)+'整理'}</span>${s.saved?'<span class="sf-saved-mark">已收藏</span>':''}
         ${p.mine?'':action('read',s.read?'✓ 看过':'标为看过','',`class="sf-read" aria-pressed="${!!s.read}"`)}
         <button type="button" class="sf-menu-toggle" data-sf-action="menu" data-sf-id="${h(p.id)}" aria-label="更多操作：${h(p.title)}" aria-expanded="${ui.menu===p.id}">···</button>
@@ -214,7 +219,7 @@ const StudyCircle = (() => {
     else if(action==='thought'&&p){ui.menu=null;ui.thought=ui.thought===p.id?null:p.id;repaint();if(ui.thought)document.getElementById('sf-thought-'+p.id)?.focus();}
     else if(action==='note'&&p){
       const id='circle-'+p.id;if(mem.notes?.[id])return true;
-      const note=[p.title,p.body,p.code,p.takeaway?'要点：'+p.takeaway:'',entry('thought-'+p.id).text?'我的想法：'+entry('thought-'+p.id).text:'',...p.sources.map(([label,url])=>label+'：'+url)].filter(Boolean).join('\n\n');
+      const note=[p.title,p.body,p.imageAlt?'梗图描述：'+p.imageAlt:'',p.code,p.takeaway?'要点：'+p.takeaway:'',entry('thought-'+p.id).text?'我的想法：'+entry('thought-'+p.id).text:'',...p.sources.map(([label,url])=>label+'：'+url)].filter(Boolean).join('\n\n');
       // Save through a private circle queue first, then the existing note store.
       queue('note-'+p.id,{type:'note-copy',noteId:id,note:{subject:topic(p.topic).subject,text:note,createdAt:now(),source:'学习圈',circlePost:p.id}});
       mem.notes=mem.notes||{};mem.notes[id]=clone(entry('note-'+p.id).note);lsSave();ui.menu=null;ui.notice='已收进「'+(topic(p.topic).subject==='computer'?'电脑':topic(p.topic).subject==='school'?'学校':topic(p.topic).subject==='ielts'?'英语':'AI')+'」笔记；课程进度不变。';repaint();
@@ -245,7 +250,7 @@ const StudyCircle = (() => {
     const id=e.target.dataset?.sfInterest;if(!id)return;
     let selected=preferences();selected=e.target.checked?[...new Set([...selected,id])]:selected.filter(t=>t!==id);
     if(!selected.length){e.target.checked=true;ui.notice='至少留一个喜欢的主题。';repaint();return;}
-    queue('preferences',{type:'preferences',topics:selected});ui.limit=6;ui.notice='兴趣已更新。';repaint(`[data-sf-interest="${id}"]`);
+    queue('preferences',{type:'preferences',topics:selected,topicVersion:2});ui.limit=6;ui.notice='兴趣已更新。';repaint(`[data-sf-interest="${id}"]`);
   });
   document.addEventListener('submit',e=>{
     const form=e.target.closest('[data-sf-form]');if(!form)return;e.preventDefault();
