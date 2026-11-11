@@ -4,7 +4,8 @@ const StudyCircle = (() => {
   const C=StudyCircleContent;
   const h=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const topic=id=>C.topics.find(t=>t.id===id)||C.topics[0];
-  const ui={view:'for-you',topic:'all',query:'',limit:6,seed:0,thought:null,composer:false,settings:false,answers:{},drafts:{},notice:''};
+  const initialUI=()=>({view:'for-you',topic:'all',query:'',limit:6,seed:0,thought:null,menu:null,unread:false,composer:false,settings:false,answers:{},expanded:{},drafts:{},notice:''});
+  const ui=initialUI();
   let account=null,pending={},syncing=false,retryTimer=null,nextAttempt=0;
   const accountId=()=>sess?.email||'local';
   const storageKey=()=>`study-circle-pending-v1:${account}`;
@@ -12,7 +13,7 @@ const StudyCircle = (() => {
   function loadAccount(){
     const key=accountId(); if(account===key)return;
     account=key;pending={};nextAttempt=0;clearTimeout(retryTimer);
-    Object.assign(ui,{view:'for-you',topic:'all',query:'',limit:6,seed:0,thought:null,composer:false,settings:false,answers:{},drafts:{},notice:''});
+    Object.assign(ui,initialUI());
     try{const saved=JSON.parse(localStorage.getItem(storageKey())||'{}');if(saved&&typeof saved==='object'&&!Array.isArray(saved))pending=saved;}catch(_){}
   }
   function entries(){loadAccount();return {...(mem.circle||{}),...pending};}
@@ -63,7 +64,7 @@ const StudyCircle = (() => {
   }
   function allPosts(){
     const mine=Object.entries(entries()).filter(([,v])=>v?.type==='post'&&!v.deleted&&typeof v.text==='string').map(([id,v])=>({id,topic:C.topics.some(t=>t.id===v.topic)?v.topic:'python',title:'我的一条学习碎片',body:v.text.slice(0,2000),mine:true,createdAt:v.createdAt,sources:[]}));
-    return [...mine.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')),...C.posts];
+    return [...mine.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')),...C.posts.map(p=>({...p,edition:p.edition||C.archiveEdition}))];
   }
   function hash(s){let n=0;for(const c of s)n=(Math.imul(n,31)+c.charCodeAt(0))|0;return n>>>0;}
   function filtered(){
@@ -72,20 +73,27 @@ const StudyCircle = (() => {
       const s=entry('state-'+p.id);
       if(ui.view==='saved'&&!s.saved)return false;
       if(ui.view==='mine'&&!p.mine)return false;
-      if(ui.view==='for-you'&&(s.hidden||!prefs.includes(p.topic)))return false;
+      if(['for-you','all'].includes(ui.view)&&(s.hidden||!prefs.includes(p.topic)))return false;
+      if(ui.view==='for-you'&&(p.mine||p.edition!==C.edition))return false;
+      if(ui.unread&&s.read)return false;
       if(ui.topic!=='all'&&p.topic!==ui.topic)return false;
       return !q||[p.title,p.body,p.takeaway,p.code,topic(p.topic).name].join(' ').toLocaleLowerCase().includes(q);
     });
-    if(ui.view==='for-you'){
-      const buckets=C.topics.map(t=>{
-        const group=list.filter(p=>p.topic===t.id).sort((a,b)=>hash(a.id)-hash(b.id));
-        const shift=group.length?ui.seed%group.length:0;
-        return [...group.slice(shift),...group.slice(0,shift)];
+    if(['for-you','all'].includes(ui.view)){
+      // Keep actual editorial editions separate; rotating is not a new publication.
+      const editions=[...new Set(list.map(p=>p.mine?(p.createdAt||'').slice(0,10):p.edition))].sort().reverse();
+      list=editions.flatMap(date=>{
+        const batch=list.filter(p=>(p.mine?(p.createdAt||'').slice(0,10):p.edition)===date);
+        const buckets=C.topics.map(t=>{
+          const group=batch.filter(p=>p.topic===t.id).sort((a,b)=>hash(a.id)-hash(b.id));
+          const shift=group.length?ui.seed%group.length:0;
+          return [...group.slice(shift),...group.slice(0,shift)];
+        });
+        const result=[];for(let i=0;result.length<batch.length;i++)for(let k=0;k<buckets.length;k++){
+          const group=buckets[(k+ui.seed)%buckets.length];if(group[i])result.push(group[i]);
+        }
+        return result;
       });
-      const total=list.length;
-      list=[];for(let i=0;list.length<total;i++)for(let k=0;k<buckets.length;k++){
-        const group=buckets[(k+ui.seed)%buckets.length];if(group[i])list.push(group[i]);
-      }
     }
     return list;
   }
@@ -95,6 +103,12 @@ const StudyCircle = (() => {
   };
   function visual(p){
     const box=(type,inside)=>`<div class="sf-visual sf-v-${type}" aria-label="${h(p.title)}">${inside}</div>`;
+    if(p.visual==='routes')return box('routes','<div><span>电脑</span><i>↔</i><span>平板</span><small>直连</small></div><div><span>电脑</span><i>↔</i><b>中转</b><i>↔</i><span>平板</span></div>');
+    if(p.visual==='bottleneck')return box('bottleneck','<span>家里上传</span><i>→</i><b>最慢的一段</b><i>→</i><span>外面下载</span>');
+    if(p.visual==='inversions')return box('inversions','<div><span>G<br>E<br><b>C</b></span><small>原位</small></div><div><span>C<br>G<br><b>E</b></span><small>第一转位</small></div><div><span>E<br>C<br><b>G</b></span><small>第二转位</small></div>');
+    if(p.visual==='passing')return box('passing','<div><span>C</span><i>→</i><span class="sf-passing-tone">D</span><i>→</i><span>E</span></div><b>C — E — G</b><small>和声可以保持，旋律继续走。</small>');
+    if(p.visual==='depth')return box('depth','<i></i><i></i><i></i><i></i><i></i><i></i><span>一点远，一点近。</span>');
+    if(p.visual==='frames')return box('frames','<div><b>60 FPS</b><span>约 16.7 ms / 帧</span></div><div><b>120 FPS</b><span>约 8.3 ms / 帧</span></div>');
     if(p.visual==='request')return box('request','<span>浏览器</span><i>HTTP 请求 →<br>← HTML / JSON / 图片</i><span>服务器</span>');
     if(p.visual==='triads')return box('triads','<div><b>T</b><span><em>1</em> · 3 · <em>5</em></span></div><div><b>S</b><span>4 · 6 · <em>1</em></span></div><div><b>D</b><span><em>5</em> · 7 · 2</span></div>');
     if(p.visual==='latency')return box('chain',['采集','编码','传输','解码','显示'].map((x,i)=>`<span>${x}</span>${i<4?'<i>→</i>':''}`).join(''));
@@ -112,58 +126,98 @@ const StudyCircle = (() => {
     const [id,i]=p.lesson;
     return mem.courses[id]&&(sylWatch(id)[i]||sylDone(id)[i])?'接着你学过的 · '+(id==='y1-cs50p'?'CS50P':'CS50T'):'兴趣拓展';
   }
+  const dateLabel=date=>/^\d{4}-\d{2}-\d{2}$/.test(date||'')?`${Number(date.slice(5,7))}月${Number(date.slice(8,10))}日`:'';
+  function avatar(id){
+    const shapes={
+      python:'<path d="M18 21h19v9H27v13H16V31h10V21"/><circle cx="32" cy="25" r="1"/><path d="M38 39H19v-9h10V17h11v12H30v10" opacity=".45"/>',
+      network:'<circle cx="28" cy="28" r="17"/><ellipse cx="28" cy="28" rx="8" ry="17"/><path d="M12 23h32M12 33h32"/>',
+      music:'<path d="M23 39V16l19-4v23M23 23l19-4"/><ellipse cx="18" cy="39" rx="6" ry="4"/><ellipse cx="37" cy="35" rx="6" ry="4"/>',
+      english:'<path d="m12 39 10-24 10 24M16 31h12M36 28c9-4 11 8 0 7-5 0-3 7 3 4l3-2v-7"/>',
+      ai:'<path d="m28 10 5 13 13 5-13 5-5 13-5-13-13-5 13-5Z"/><path d="m43 8 2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" opacity=".5"/>',
+      visual:'<path d="M10 39 24 18l12 17 7-9 10 16H10Z"/><circle cx="39" cy="16" r="6"/><path d="M11 45h34"/>',
+      self:'<path d="M29 43V29M29 34C10 33 11 15 11 15s21-2 18 19ZM29 29C48 28 47 10 47 10S26 8 29 29Z"/>'
+    };
+    return `<svg viewBox="0 0 56 56" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${shapes[id]||shapes.self}</svg>`;
+  }
+  function cover(){
+    const stars=Array.from({length:48},(_,i)=>`<circle cx="${(i*137+29)%800}" cy="${(i*59+7)%195}" r="${i%7===0?1.3:.65}" opacity="${.25+i%5*.12}"/>`).join('');
+    return `<svg class="sf-cover-art" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="月光下的蓝绿色群山与湖面"><defs><linearGradient id="sf-sky" x2="0" y2="1"><stop stop-color="#1b3548"/><stop offset="1" stop-color="#99b7ae"/></linearGradient><linearGradient id="sf-lake" x2="0" y2="1"><stop stop-color="#7c9f99"/><stop offset="1" stop-color="#254f58"/></linearGradient><radialGradient id="sf-moon"><stop stop-color="#eff0ce" stop-opacity=".28"/><stop offset="1" stop-color="#eff0ce" stop-opacity="0"/></radialGradient></defs><path fill="url(#sf-sky)" d="M0 0h800v300H0z"/><circle fill="url(#sf-moon)" cx="593" cy="65" r="80"/><circle fill="#e8ebcc" cx="593" cy="65" r="19"/><g fill="#ebf0dc">${stars}</g><path fill="#6b9290" d="m0 208 92-70 61 34 95-89 109 100 66-51 112 67 94-78 75 74 96-35v140H0Z"/><path fill="#416c72" d="m0 235 110-57 92 38 117-68 95 68 89-40 111 40 96-70 90 60v94H0Z"/><path fill="url(#sf-lake)" d="M0 229q180-8 388 11t412-8v68H0Z"/><g stroke="#d6dfc3" stroke-width="1" opacity=".3"><path d="M558 252h62m-75 7h91m-70 8h47m-71 8h93m-65 9h36"/></g><path fill="#183e49" d="m0 247 79-12 82 21 80 44H0Zm800-3-76-14-107 70h183Z"/><path fill="#d8e1cc" opacity=".15" d="m0 298 120-31 57 33Zm800-15-73-30-50 47h123Z"/></svg>`;
+  }
   function card(p){
     const t=topic(p.topic),s=entry('state-'+p.id),r=entry('thought-'+p.id),thought=ui.thought===p.id;
-    const text=ui.drafts[p.id]??r.text??'';
-    const noteId='circle-'+p.id,noteSaved=!!mem.notes?.[noteId];
+    const text=ui.drafts[p.id]??r.text??'',noteSaved=!!mem.notes?.['circle-'+p.id];
+    const action=(name,label,svg,extra='')=>`<button type="button" data-sf-action="${name}" data-sf-id="${h(p.id)}" ${extra}>${icon(svg)}${label}</button>`;
+    const isNew=!p.mine&&p.edition===C.edition;
     return `<article class="sf-card" id="sf-card-${h(p.id)}" style="--sf-tone:${t.color}">
-      <header class="sf-author"><div class="sf-avatar ${p.mine?'sf-self':''}" aria-hidden="true">${p.mine?'我':h(t.mark)}</div><div><strong>${p.mine?'我':h(t.author)}</strong><span>${p.mine?'自己的记录 · '+h(fmt(p.createdAt)):'兴趣栏目 · AI 整理手记'}</span></div><span class="sf-topic-name">${h(t.name)}</span></header>
+      <div class="sf-avatar sf-avatar-${p.mine?'self':t.id}" aria-hidden="true">${avatar(p.mine?'self':t.id)}</div>
+      <div class="sf-card-content"><header class="sf-author"><strong>${p.mine?'我':h(t.author)}</strong><span>${h(t.name)}${isNew&&!s.read?' · 新':''}</span></header>
       <div class="sf-post-body"><h3>${h(p.title)}</h3>${p.body.split('\n').map(line=>`<p>${h(line)}</p>`).join('')}${p.code?`<pre><code>${h(p.code)}</code></pre>`:''}${visual(p)}
-      ${p.takeaway?`<div class="sf-takeaway"><span>留住这一点</span><p>${h(p.takeaway)}</p></div>`:''}
-      ${p.prompt?`<details class="sf-question" data-sf-detail="${h(p.id)}" ${ui.answers[p.id]?'open':''}><summary>${h(p.prompt)}<span>想一下，再看</span></summary><p>${h(p.answer)}</p></details>`:''}
-      ${p.sources.length?`<div class="sf-sources">${p.sources.map(([label,url])=>`<a href="${h(url)}" target="_blank" rel="noopener noreferrer">${h(label)} ↗</a>`).join('')}</div>`:''}
-      <div class="sf-card-meta"><span>${p.mine?'只有自己可见':h(lessonLabel(p))}</span>${p.mine?'':`<button type="button" data-sf-action="hide" data-sf-id="${h(p.id)}">少看这条</button>`}</div></div>
-      <footer class="sf-card-actions"><button type="button" data-sf-action="like" data-sf-id="${h(p.id)}" aria-pressed="${!!s.liked}" aria-label="${s.liked?'取消喜欢':'喜欢'}：${h(p.title)}">${icon('heart')}<span>${s.liked?'喜欢了':'喜欢'}</span></button><button type="button" data-sf-action="save" data-sf-id="${h(p.id)}" aria-pressed="${!!s.saved}" aria-label="${s.saved?'取消收藏':'收藏'}：${h(p.title)}">${icon('save')}<span>${s.saved?'已收藏':'收藏'}</span></button><button type="button" data-sf-action="thought" data-sf-id="${h(p.id)}" aria-expanded="${thought}">${icon('chat')}<span>${r.text?'我的想法':'留个想法'}</span></button><button type="button" data-sf-action="note" data-sf-id="${h(p.id)}" ${noteSaved?'disabled':''}>${icon('note')}<span>${noteSaved?'已记入笔记':'记入笔记'}</span></button></footer>
-      ${thought?`<form class="sf-thought" data-sf-form="thought" data-sf-id="${h(p.id)}"><label for="sf-thought-${h(p.id)}">给自己留一句话</label><textarea id="sf-thought-${h(p.id)}" data-sf-draft="${h(p.id)}" maxlength="1000" rows="3" placeholder="我想到了什么？哪里还没懂？">${h(text)}</textarea><div><span>只有自己可见</span><button type="submit">保存想法</button></div></form>`:r.text?`<div class="sf-thought-saved"><span>我的想法</span><p>${h(r.text)}</p></div>`:''}
+      ${!p.mine?`<details class="sf-reading" data-sf-expanded="${h(p.id)}" ${ui.expanded[p.id]?'open':''}><summary>展开笔记与来源</summary>
+        ${p.takeaway?`<div class="sf-takeaway"><p>${h(p.takeaway)}</p></div>`:''}
+        ${p.prompt?`<details class="sf-question" data-sf-detail="${h(p.id)}" ${ui.answers[p.id]?'open':''}><summary>${h(p.prompt)}<span>点开看解释</span></summary><p>${h(p.answer)}</p></details>`:''}
+        <div class="sf-sources">${p.sources.length?p.sources.map(([label,url])=>`<a href="${h(url)}" target="_blank" rel="noopener noreferrer">${h(label)} ↗</a>`).join(''):'原创学习方法建议'}</div><small>${h(lessonLabel(p))} · AI 整理，附参考资料</small></details>`:''}</div>
+      <div class="sf-card-meta"><span>${p.mine?h(fmt(p.createdAt))+' · 仅自己可见':dateLabel(p.edition)+'整理'}</span>${s.saved?'<span class="sf-saved-mark">已收藏</span>':''}
+        ${p.mine?'':action('read',s.read?'✓ 看过':'标为看过','',`class="sf-read" aria-pressed="${!!s.read}"`)}
+        <button type="button" class="sf-menu-toggle" data-sf-action="menu" data-sf-id="${h(p.id)}" aria-label="更多操作：${h(p.title)}" aria-expanded="${ui.menu===p.id}">···</button>
+        ${ui.menu===p.id?`<div class="sf-card-menu" aria-label="动态操作">${action('like',s.liked?'取消赞':'赞','heart',`aria-pressed="${!!s.liked}" aria-label="${s.liked?'取消喜欢':'喜欢'}：${h(p.title)}"`)}${action('thought','评论','chat',`aria-expanded="${thought}"`)}${action('save',s.saved?'已收藏':'收藏','save',`aria-pressed="${!!s.saved}" aria-label="${s.saved?'取消收藏':'收藏'}：${h(p.title)}"`)}${action('note',noteSaved?'已记入':'记笔记','note',noteSaved?'disabled':'')}${p.mine?'':action('hide','收起这条','')}</div>`:''}</div>
+      ${s.liked||r.text?`<div class="sf-social">${s.liked?`<div class="sf-likes">${icon('heart')}<span>我</span></div>`:''}${r.text?`<button type="button" class="sf-thought-saved" data-sf-action="thought" data-sf-id="${h(p.id)}"><b>我：</b><span>${h(r.text)}</span></button>`:''}</div>`:''}
+      ${thought?`<form class="sf-thought" data-sf-form="thought" data-sf-id="${h(p.id)}"><label class="sf-sr" for="sf-thought-${h(p.id)}">给自己留一句话</label><textarea id="sf-thought-${h(p.id)}" data-sf-draft="${h(p.id)}" maxlength="1000" rows="2" placeholder="写下自己的想法…">${h(text)}</textarea><div><span>仅自己可见</span><button type="submit">保存想法</button></div></form>`:''}</div>
     </article>`;
   }
   function renderFeed(){
     loadAccount();
-    const list=filtered(),all=allPosts(),prefs=preferences(),values=entries();
+    const list=filtered(),all=allPosts(),prefs=preferences();
     const saved=all.filter(p=>entry('state-'+p.id).saved).length;
-    const thoughts=Object.values(values).filter(v=>v?.type==='thought'&&v.text).length;
+    const latest=C.posts.filter(p=>p.edition===C.edition),read=latest.filter(p=>entry('state-'+p.id).read).length;
     const hidden=C.posts.filter(p=>entry('state-'+p.id).hidden).length;
-    return `<section class="sf-page" aria-label="学习圈"><header class="sf-hero"><div class="sf-hero-stars" aria-hidden="true"></div><div class="sf-hero-copy"><div class="sf-eyebrow">A LITTLE CURIOSITY, EVERY DAY</div><h2>学习圈<span>给好奇心留个位置。</span></h2><p>编程里的一点灵光，音乐里的一次恍然。<br>不赶进度，遇到喜欢的就停一会儿。</p><div class="sf-disclosure"><i></i>按你的兴趣编写 · 栏目手记不是他人真实动态</div></div><div class="sf-orbit" aria-hidden="true"><i></i><i></i><i></i><span>✦</span><b>STAY<br>CURIOUS</b></div></header>
-      <div class="sf-layout"><div class="sf-stream"><div class="sf-stream-top"><nav class="sf-views" aria-label="动态视图">${[['for-you','为你'],['saved','收藏 '+saved],['mine','我写的']].map(([id,label])=>`<button type="button" data-sf-view="${id}" aria-pressed="${ui.view===id}">${label}</button>`).join('')}</nav><button class="sf-shuffle" type="button" data-sf-action="shuffle">${icon('refresh')}换个顺序</button></div>
-      <div class="sf-search">${icon('search')}<input id="sf-search" type="search" value="${h(ui.query)}" placeholder="找一个感兴趣的话题…" aria-label="搜索学习动态"></div>
-      <nav class="sf-topic-filters" aria-label="筛选兴趣主题">${[{id:'all',name:'全部'},...C.topics].map(t=>`<button type="button" data-sf-topic="${t.id}" aria-pressed="${ui.topic===t.id}">${h(t.name)}</button>`).join('')}</nav>
-      <div class="sf-compose"><button class="sf-compose-open" type="button" data-sf-action="compose" aria-expanded="${ui.composer}"><span class="sf-avatar sf-self">我</span><span>今天有什么小发现？</span><b>＋ 写一条</b></button>${ui.composer?`<form data-sf-form="post"><label class="sf-sr" for="sf-compose-text">我的学习动态</label><textarea id="sf-compose-text" data-sf-draft="compose" maxlength="2000" rows="4" placeholder="只写一两句也可以。它会留在自己的学习圈里。">${h(ui.drafts.compose||'')}</textarea><div><label for="sf-compose-topic">放在 <select id="sf-compose-topic">${C.topics.map(t=>`<option value="${t.id}" ${t.id===(ui.drafts.composeTopic||'python')?'selected':''}>${h(t.name)}</option>`).join('')}</select></label><button type="submit">留在学习圈</button></div></form>`:''}</div>
+    return `<section class="sf-page" aria-label="学习圈"><header class="sf-topbar"><span>五年学习本</span><h2>学习圈</h2><button type="button" data-sf-action="compose" aria-label="写一条学习动态" aria-expanded="${ui.composer}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 7h4l2-3h4l2 3h4v13H4Z"/><circle cx="12" cy="13" r="4"/></svg></button></header>
+      <div class="sf-cover">${cover()}<div class="sf-cover-caption">在自己的节奏里，<br>一点点看见更大的世界。</div><div class="sf-profile"><strong>我的学习日常</strong><div class="sf-profile-avatar">${avatar('self')}</div></div></div>
+      <div class="sf-signature">留一点好奇，给今天的自己。</div>
+      <div class="sf-disclosure">按你的兴趣编写 · 栏目手记不是他人真实动态</div>
+      <div class="sf-toolbar"><nav class="sf-views" aria-label="动态视图">${[['for-you','新一期'],['all','全部'],['saved','收藏'+(saved?' '+saved:'')],['mine','我写的']].map(([id,label])=>`<button type="button" data-sf-view="${id}" aria-pressed="${ui.view===id}">${label}</button>`).join('')}</nav><button type="button" class="sf-interest-toggle" data-sf-action="settings" aria-expanded="${ui.settings}">兴趣设置</button></div>
+      ${ui.settings?`<section class="sf-settings"><p>选你想看的主题；取消兴趣不会删除收藏。</p>${C.topics.map(t=>`<label><input type="checkbox" data-sf-interest="${t.id}" ${prefs.includes(t.id)?'checked':''}><span>${h(t.name)}<small>${h(t.why)}</small></span></label>`).join('')}${hidden?`<button type="button" data-sf-action="restore">恢复收起的 ${hidden} 条</button>`:''}</section>`:''}
+      <div class="sf-feed-tools"><label class="sf-search">${icon('search')}<input id="sf-search" type="search" value="${h(ui.query)}" placeholder="搜索动态" aria-label="搜索学习动态"></label><button type="button" data-sf-action="unread" aria-pressed="${ui.unread}">${ui.unread?'✓ ':''}只看没看过</button></div>
+      <nav class="sf-topic-filters" aria-label="筛选兴趣主题">${[{id:'all',name:'全部主题'},...C.topics].map(t=>`<button type="button" data-sf-topic="${t.id}" aria-pressed="${ui.topic===t.id}">${h(t.name)}</button>`).join('')}</nav>
+      ${ui.composer?`<div class="sf-compose"><form data-sf-form="post"><label for="sf-compose-text">这一刻的想法</label><textarea id="sf-compose-text" data-sf-draft="compose" maxlength="2000" rows="4" placeholder="今天学到了什么？只写一两句也可以。">${h(ui.drafts.compose||'')}</textarea><div><label for="sf-compose-topic">主题 <select id="sf-compose-topic">${C.topics.map(t=>`<option value="${t.id}" ${t.id===(ui.drafts.composeTopic||'python')?'selected':''}>${h(t.name)}</option>`).join('')}</select></label><span>仅自己可见</span><button type="submit">发表</button></div></form></div>`:''}
       <p id="sf-notice" class="sf-notice" role="status">${h(ui.notice)}</p>
-      <div class="sf-results-label">${ui.view==='for-you'?'你的兴趣书签，慢慢往下翻。':ui.view==='saved'?'喜欢的东西，留在这里。':'自己的发现，不用写得很完整。'}<span>${list.length} 条</span></div>
-      <div class="sf-posts">${list.slice(0,ui.limit).map(card).join('')||`<div class="sf-empty"><b>${ui.query?'还没有找到这个话题':ui.view==='saved'?'遇到喜欢的，点一下收藏':ui.view==='mine'?'给今天留一个小发现':'这一组暂时没有动态'}</b><p>${ui.query?'试试 Python、和弦、API，或者清空搜索。':'可以调整上面的主题，或写下自己的第一条。'}</p>${ui.query?'<button type="button" data-sf-action="clear">清空搜索</button>':''}</div>`}</div>
-      ${list.length>ui.limit?`<button type="button" class="sf-load-more" data-sf-action="more">再看几条 ${icon('arrow')}</button>`:list.length?'<div class="sf-end">✦　先看到这里。喜欢的东西，慢慢来。</div>':''}</div>
-      <aside class="sf-aside"><section class="sf-interest-panel"><div class="sf-aside-kicker">YOUR LITTLE UNIVERSE</div><h3>你感兴趣的世界</h3><p>先从我们聊过的兴趣出发。<br>以后也可以随时改。</p><div class="sf-interest-chips">${C.topics.filter(t=>prefs.includes(t.id)).map(t=>`<span style="--sf-tone:${t.color}"><i></i>${h(t.name)}</span>`).join('')}</div><button class="sf-edit-interests" type="button" data-sf-action="settings" aria-expanded="${ui.settings}">${ui.settings?'收起兴趣设置':'调整我的兴趣'} ↗</button>
-      ${ui.settings?`<div class="sf-settings"><p>至少选一个；收藏不会因取消兴趣而消失。</p>${C.topics.map(t=>`<label><input type="checkbox" data-sf-interest="${t.id}" ${prefs.includes(t.id)?'checked':''}><span>${h(t.name)}<small>${h(t.why)}</small></span></label>`).join('')}${hidden?`<button type="button" data-sf-action="restore">恢复少看的 ${hidden} 条内容</button>`:''}</div>`:''}</section>
-      <section class="sf-shelf"><div class="sf-aside-kicker">A FEW THINGS TO KEEP</div><div><b>${saved}</b><span>收藏的小发现</span></div><div><b>${thoughts}</b><span>自己留下的想法</span></div><button type="button" data-sf-view="saved">打开我的收藏 ${icon('arrow')}</button></section><section class="sf-aside-note"><span>关于这里</span><p>这是为你整理的兴趣阅读，不是实时社交平台。事实内容附参考资料，练习与设计建议会说明语境。</p><p>收藏和想法只有自己可见；记入笔记不会自动标记课程学完。</p><span id="sf-sync">${h(syncText())}</span><small>首批 ${C.posts.length} 条 · 整理于 ${C.edition}<br>“换个顺序”重排已有内容，不会生成新文章。</small></section></aside></div></section>`;
+      <div class="sf-results"><div class="sf-edition"><span>${ui.view==='for-you'?`${dateLabel(C.edition)} · 新整理 ${latest.length} 条`:ui.view==='all'?'所有学习日常':ui.view==='saved'?'留住喜欢的小发现':'自己的小发现'}</span><span>${ui.view==='for-you'?`本期看过 ${read}/${latest.length}`:`${list.length} 条`}</span></div>
+      <div class="sf-posts">${list.slice(0,ui.limit).map(card).join('')||`<div class="sf-empty"><b>${ui.query?'还没有找到这个话题':ui.unread?'这组都标为看过啦':ui.view==='saved'?'遇到喜欢的，在 ··· 里收藏':ui.view==='mine'?'点右上角，写一个小发现':'这一组暂时没有动态'}</b><p>${ui.query?'试试 Python、和弦、API，或者清空搜索。':ui.unread?'可以关掉“只看没看过”再翻一遍，或去全部里看看。':'可以换个主题，或留下一条自己的记录。'}</p>${ui.query?'<button type="button" data-sf-action="clear">清空搜索</button>':''}</div>`}</div>
+      ${list.length>ui.limit?`<button type="button" class="sf-load-more" data-sf-action="more">继续往下看 ${icon('arrow')}</button>`:list.length?`<div class="sf-end">—— ${ui.view==='for-you'?'这一期先看到这里':'已经到底啦'} ——${ui.view==='for-you'&&ui.topic==='all'&&!ui.query&&!ui.unread?'<button type="button" data-sf-action="read-batch">这一期我看完了 ✓</button>':''}</div>`:''}
+      </div><footer class="sf-about"><button type="button" data-sf-action="shuffle">${icon('refresh')}换个顺序</button><p>共 ${C.posts.length} 条 · 最新整理于 ${C.edition}<br>内容手动更新；换顺序不会生成新动态。</p><span id="sf-sync">${h(syncText())}</span></footer></section>`;
   }
+
   function repaint(selector){render();if(selector)document.querySelector(selector)?.focus({preventScroll:true});}
-  function changeState(id,field){const state=entry('state-'+id);queue('state-'+id,{...state,type:'state',[field]:!state[field]});repaint(`[data-sf-action="${field==='liked'?'like':'save'}"][data-sf-id="${id}"]`);}
+  function updateSearch(){
+    const results=document.querySelector('.sf-results');
+    if(!results){repaint('#sf-search');return;}
+    // Keep the live input node and its selection/IME session while results change.
+    const template=document.createElement('template');template.innerHTML=renderFeed();
+    results.innerHTML=template.content.querySelector('.sf-results').innerHTML;
+  }
+  function changeState(id,field){const state=entry('state-'+id);queue('state-'+id,{...state,type:'state',[field]:!state[field]});ui.menu=null;repaint(`[data-sf-action="menu"][data-sf-id="${id}"]`);}
   function handleClick(e){
     const target=e.target.closest('[data-sf-action],[data-sf-topic],[data-sf-view]');if(!target)return false;
     loadAccount();const d=target.dataset;
     if(d.sfTopic){ui.topic=d.sfTopic;ui.limit=6;ui.notice='';repaint(`[data-sf-topic="${d.sfTopic}"]`);return true;}
-    if(d.sfView){ui.view=d.sfView;ui.topic='all';ui.query='';ui.limit=6;ui.notice='';repaint(`[data-sf-view="${d.sfView}"]`);return true;}
+    if(d.sfView){ui.view=d.sfView;ui.topic='all';ui.query='';ui.limit=6;ui.menu=null;ui.unread=false;ui.notice='';repaint(`[data-sf-view="${d.sfView}"]`);return true;}
     const p=allPosts().find(p=>p.id===d.sfId),action=d.sfAction;
     if(action==='like'&&p)changeState(p.id,'liked');
     else if(action==='save'&&p)changeState(p.id,'saved');
-    else if(action==='hide'&&p){queue('state-'+p.id,{...entry('state-'+p.id),type:'state',hidden:true});ui.notice='这条已从「为你」收起，可在兴趣设置里恢复。';repaint();}
-    else if(action==='thought'&&p){ui.thought=ui.thought===p.id?null:p.id;repaint();if(ui.thought)document.getElementById('sf-thought-'+p.id)?.focus();}
+    else if(action==='menu'&&p){ui.menu=ui.menu===p.id?null:p.id;repaint(`[data-sf-action="menu"][data-sf-id="${p.id}"]`);}
+    else if(action==='read'&&p){changeState(p.id,'read');}
+    else if(action==='read-batch'){
+      for(const post of filtered())if(!post.mine&&post.edition===C.edition&&!entry('state-'+post.id).read)queue('state-'+post.id,{...entry('state-'+post.id),type:'state',read:true});
+      ui.notice='这一期已经标为看过。收藏和笔记都还在。';repaint();
+    }
+    else if(action==='unread'){ui.unread=!ui.unread;ui.limit=6;repaint('[data-sf-action="unread"]');}
+    else if(action==='hide'&&p){queue('state-'+p.id,{...entry('state-'+p.id),type:'state',hidden:true});ui.menu=null;ui.notice='这条已收起，可在兴趣设置里恢复。';repaint();}
+    else if(action==='thought'&&p){ui.menu=null;ui.thought=ui.thought===p.id?null:p.id;repaint();if(ui.thought)document.getElementById('sf-thought-'+p.id)?.focus();}
     else if(action==='note'&&p){
       const id='circle-'+p.id;if(mem.notes?.[id])return true;
       const note=[p.title,p.body,p.code,p.takeaway?'要点：'+p.takeaway:'',entry('thought-'+p.id).text?'我的想法：'+entry('thought-'+p.id).text:'',...p.sources.map(([label,url])=>label+'：'+url)].filter(Boolean).join('\n\n');
       // Save through a private circle queue first, then the existing note store.
       queue('note-'+p.id,{type:'note-copy',noteId:id,note:{subject:topic(p.topic).subject,text:note,createdAt:now(),source:'学习圈',circlePost:p.id}});
-      mem.notes=mem.notes||{};mem.notes[id]=clone(entry('note-'+p.id).note);lsSave();ui.notice='已收进「'+(topic(p.topic).subject==='computer'?'电脑':topic(p.topic).subject==='school'?'学校':topic(p.topic).subject==='ielts'?'英语':'AI')+'」笔记；课程进度不变。';repaint();
+      mem.notes=mem.notes||{};mem.notes[id]=clone(entry('note-'+p.id).note);lsSave();ui.menu=null;ui.notice='已收进「'+(topic(p.topic).subject==='computer'?'电脑':topic(p.topic).subject==='school'?'学校':topic(p.topic).subject==='ielts'?'英语':'AI')+'」笔记；课程进度不变。';repaint();
     }
     else if(action==='shuffle'){ui.seed++;ui.limit=6;ui.notice='换了一个顺序，仍是已经整理好的内容。';repaint('[data-sf-action="shuffle"]');}
     else if(action==='more'){ui.limit+=6;ui.notice='';repaint();}
@@ -183,9 +237,9 @@ const StudyCircle = (() => {
   }
   document.addEventListener('input',e=>{
     if(e.target.dataset?.sfDraft)ui.drafts[e.target.dataset.sfDraft]=e.target.value;
-    if(e.target.id==='sf-search'&&!e.isComposing){ui.query=e.target.value;ui.limit=6;repaint();}
+    if(e.target.id==='sf-search'&&!e.isComposing){ui.query=e.target.value;ui.limit=6;updateSearch();}
   });
-  document.addEventListener('compositionend',e=>{if(e.target.id==='sf-search'){ui.query=e.target.value;ui.limit=6;repaint();}});
+  document.addEventListener('compositionend',e=>{if(e.target.id==='sf-search'){ui.query=e.target.value;ui.limit=6;updateSearch();}});
   document.addEventListener('change',e=>{
     if(e.target.id==='sf-compose-topic'){ui.drafts.composeTopic=e.target.value;return;}
     const id=e.target.dataset?.sfInterest;if(!id)return;
@@ -204,6 +258,7 @@ const StudyCircle = (() => {
       delete ui.drafts.compose;ui.composer=false;ui.view='mine';ui.topic='all';ui.query='';ui.notice='留下来了。只有你自己能看到。';repaint();
     }
   });
-  document.addEventListener('toggle',e=>{const id=e.target.dataset?.sfDetail;if(id)ui.answers[id]=e.target.open;},true);
+  document.addEventListener('toggle',e=>{const id=e.target.dataset?.sfDetail;if(id)ui.answers[id]=e.target.open;const expanded=e.target.dataset?.sfExpanded;if(expanded)ui.expanded[expanded]=e.target.open;},true);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ui.menu){const id=ui.menu;ui.menu=null;repaint(`[data-sf-action="menu"][data-sf-id="${id}"]`);}});
   return {render:renderFeed,handleClick,afterRender};
 })();
