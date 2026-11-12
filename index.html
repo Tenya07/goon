@@ -625,6 +625,7 @@ body.locked .shell{visibility:hidden}
 <script src="notebook.js?v=20261109-notes"></script>
 <script src="circle-content.js?v=20261111-webmemes"></script>
 <script src="study-circle.js?v=20261111-profile"></script>
+<script src="opera-library.js?v=20261112"></script>
 <script>
 // ---------- 静态内容（来自五年学习表） ----------
 const SUBJECTS = [
@@ -1490,7 +1491,7 @@ const OPERAS = [
 // 歌单和「课程与资源」打通：每一部歌剧就是一个分区，时期是大段
 STAGES.opera = OPERAS.map((p,i)=>({y:i+1, n:p.p, t:p.t||'按时期放，找起来快'}));
 AREAS.opera  = OPERAS.flatMap((p,i)=>p.ops.map(([id,name,hint,ru])=>({k:id, y:i+1, n:name, c:ru||'', d:hint||''})));
-const opRes = id => bySubj('courses','opera').filter(([,c])=>c.area===id);
+const operaGroups = () => OperaLibrary.build(OPERAS,bySubj('courses','opera'),mem.operas);
 
 const VOCAB = [
  ['发票','счёт / счёт-фактура','Выставьте, пожалуйста, счёт. 请开一下发票。'],
@@ -2358,13 +2359,13 @@ function renderSubject(s){
   <div class="sec"><h3>计划里怎么说</h3><div class="plan">${s.plan.map(p=>`<p>${p}</p>`).join('')}</div></div>
   ${extra}
   <div class="grid2">
-   <div class="sec"><h3>课程与资源 <small>${courses.length}</small></h3>
-    ${renderCourseList(s.id,courses,stName)}
+   <div class="sec"><h3>${s.id==='opera'?'添加歌剧或资源':'课程与资源'} ${s.id==='opera'?'':`<small>${courses.length}</small>`}</h3>
+    ${s.id==='opera'?'<p class="ensub">已有作品的录像，选择对应歌剧；新作品不选分区，会直接成为一张歌单卡片。</p>':renderCourseList(s.id,courses,stName)}
     <form class="form" data-form="course">
       <input id="c-title-${s.id}" name="title" placeholder="课程 / 书 / 视频名称" required>
       <input id="c-url-${s.id}" name="url" placeholder="链接（可不填）" type="url">
       <textarea id="c-note-${s.id}" name="note" placeholder="备注：讲什么、从哪找的、为什么选它"></textarea>
-      ${AREAS[s.id]?`<select id="c-area-${s.id}" name="area"><option value="">放哪一区？（可不选）</option>${(STAGES[s.id]||YEARS).map(yr=>{const g=AREAS[s.id].filter(a=>a.y===yr.y);return g.length?`<optgroup label="${esc(yr.n)}">${g.map(a=>`<option value="${a.k}">${esc(a.n)}${a.c?' · '+esc(a.c):''}</option>`).join('')}</optgroup>`:''}).join('')}</select>`:''}
+      ${s.id==='opera'?`<select id="c-area-opera" name="area"><option value="">新作品 / 自动匹配已有歌剧</option>${operaGroups().map(g=>`<optgroup label="${esc(g.p)}">${g.ops.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('')}</optgroup>`).join('')}</select>`:AREAS[s.id]?`<select id="c-area-${s.id}" name="area"><option value="">放哪一区？（可不选）</option>${(STAGES[s.id]||YEARS).map(yr=>{const g=AREAS[s.id].filter(a=>a.y===yr.y);return g.length?`<optgroup label="${esc(yr.n)}">${g.map(a=>`<option value="${a.k}">${esc(a.n)}${a.c?' · '+esc(a.c):''}</option>`).join('')}</optgroup>`:''}).join('')}</select>`:''}
       <div class="row"><select id="c-status-${s.id}" name="status"><option value="want">想学</option><option value="doing">在学</option><option value="done">学完</option></select>
       <div class="actions"><button class="btn" type="submit">加进来</button></div></div>
     </form></div>
@@ -2644,24 +2645,25 @@ function renderClassics(){
 }
 
 function renderOperas(){
-  const done=Object.values(mem.operas).filter(o=>o.done).length, all=OPERAS.reduce((a,p)=>a+p.ops.length,0);
-  const linked=bySubj('courses','opera').filter(([,c])=>c.area).length;
-  return `<div class="sec"><h3>歌单 <small>看过 ${done} / ${all} · 点开一部写半页${linked?' · 已挂 '+linked+' 个资源':''}</small></h3>
-  <p class="ensub">每一部下面都给了<b>俄语名和原文名</b>——你在俄罗斯看到的是 «Травиата»，不是「茶花女」，按俄语名搜才找得到。旁边两个按钮直接带着俄语名去搜录像。找到之后在「课程与资源」里加进来，<b>分区选哪一部，它就出现在哪一部下面</b>。</p><div class="ops">${OPERAS.map(p=>`<div class="period"><h4>${p.p}${p.t?`<small>${p.t}</small>`:''}</h4>
-   ${p.ops.map(([id,name,hint,ru,orig])=>{const o=mem.operas[id]||{};const open=openOp===id;const res=opRes(id);
+  const groups=operaGroups(), cards=groups.flatMap(p=>p.ops);
+  const done=cards.filter(o=>o.done).length,all=cards.length,linked=cards.reduce((n,o)=>n+o.resources.length,0);
+  return `<div class="sec opera-library"><h3>歌单 <small>看过 ${done} / ${all}${linked?' · '+linked+' 个资源已归入歌剧':''}</small></h3>
+  <p class="ensub">歌剧与课程资源放在同一份歌单里。勾选表示看过，点标题写笔记；已有录像可以直接打开，也可以用俄语名继续搜索。</p><div class="ops">${groups.map(p=>`<div class="period"><h4>${esc(p.p)}${p.t?`<small>${esc(p.t)}</small>`:''}</h4>
+   ${p.ops.map(({id,name,hint,ru,orig,resources:res,done})=>{const o=mem.operas[id]||{};const open=openOp===id;
       const q=encodeURIComponent((ru||name).replace(/[«»]/g,'')+' опера');const q2=encodeURIComponent((orig||'')+' opera full');
-      return `<div class="op ${o.done?'done':''} ${open?'open':''} ${res.length?'hasres':''}" data-op="${id}">
-      <div class="top" data-toggle="${id}"><input type="checkbox" id="op-${id}" ${o.done?'checked':''} data-check="${id}"><label class="nm" for="op-${id}">${esc(name)}${hint?`<span>${esc(hint)}</span>`:''}</label><span class="car">${res.length?res.length+' 个资源':(open?'收起':'写笔记')}</span></div>
-      ${ru?`<div class="opru"><span class="ru">${esc(ru)}</span>${orig?`<span class="or">${esc(orig)}</span>`:''}
+      return `<div class="op ${done?'done':''} ${open?'open':''} ${res.length?'hasres':''}" data-op="${id}">
+      <div class="top" data-toggle="${id}"><input type="checkbox" id="op-${id}" ${done?'checked':''} data-check="${id}"><label class="nm" for="op-${id}">${esc(name)}${hint?`<span>${esc(hint)}</span>`:''}</label><span class="car">${open?'收起':'写笔记'}${res.length?' · '+res.length+' 个资源':''}</span></div>
+      <div class="opru">${ru?`<span class="ru">${esc(ru)}</span>`:''}${orig?`<span class="or">${esc(orig)}</span>`:''}
+        ${res.some(([,c])=>/^https?:\/\//i.test(c.url||''))?`<a class="osrch" href="${esc(res.find(([,c])=>/^https?:\/\//i.test(c.url||''))[1].url)}" target="_blank" rel="noopener">观看录像</a>`:''}
         <a class="osrch" href="https://yandex.ru/video/search?text=${q}" target="_blank" rel="noopener">Яндекс 搜录像</a>
-        ${orig?`<a class="osrch" href="https://www.youtube.com/results?search_query=${q2}" target="_blank" rel="noopener">YouTube</a>`:''}</div>`:''}
+        <a class="osrch" href="https://www.youtube.com/results?search_query=${orig?q2:q}" target="_blank" rel="noopener">YouTube</a></div>
       <div class="body">
         <div class="opres"><b>这一部的资源</b>
           ${res.length?`<div class="list">${res.map(([cid,c])=>`<div class="item">
             <button class="pill ${c.status||'want'}" data-cycle="${cid}" title="点击切换状态">${({want:'想看',doing:'在看',done:'看完'})[c.status||'want']}</button>
             <div><div class="t">${c.url?`<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.title)}</a>`:esc(c.title)}</div>${c.note?`<div class="n">${esc(c.note)}</div>`:''}</div>
             <button class="x" data-del="courses:${cid}" title="删除">×</button></div>`).join('')}</div>`
-          :'<p class="opnone">还没挂东西。下面「课程与资源」里加的时候，分区选这一部，就会出现在这里。</p>'}
+          :'<p class="opnone">还没有录像。在下面「添加歌剧或资源」选择这一部，就能把链接放进来。</p>'}
         </div>
         <label for="opf-story-${id}">大概故事</label><textarea id="opf-story-${id}" data-opf="${id}:story">${esc(o.story)}</textarea>
         <label for="opf-aria-${id}">一首你记得住的咏叹调</label><input id="opf-aria-${id}" data-opf="${id}:aria" value="${esc(o.aria)}">
