@@ -57,7 +57,7 @@ const Notebook = (() => {
   }
   function sources(refs) {
     const unique=new Map(refs.filter(watched).map(r=>[r.url,r]));
-    return [...unique.values()].map(r=>`<a class="nb-source" href="${html(r.url)}" target="_blank" rel="noopener">↗ ${html(sourceTitle(r))}</a>`).join('');
+    return [...unique.values()].map(r=>`<a class="nb-source" href="${html(r.url)}" target="_blank" rel="noopener">↗ ${html(r.label||sourceTitle(r))}</a>`).join('');
   }
   function tabs() {
     return `<div class="nb-tabs" aria-label="学习空间">${[['notes','笔记'],['map','知识网'],['courses','课程与进度']].map(([id,name])=>`<button type="button" data-nb-mode="${id}" class="${state.mode===id?'on':''}" aria-pressed="${state.mode===id}">${name}</button>`).join('')}</div>`;
@@ -157,7 +157,7 @@ const Notebook = (() => {
     const connected=edges.filter(e=>e.from===node.id||e.to===node.id);
     const lessons=[...new Map(node.refs.filter(watched).map(r=>[`${r.course}:${r.index}`,r])).values()];
     const t=node.taxonomy,system=K.systems[t.system];
-    return `<div class="nb-detail-label">课上讲过 · ${html(system.label)}</div><nav class="nb-tax-path" aria-label="知识点所属体系"><button type="button" data-nb-system="all">计算机科学</button><span>›</span><button type="button" data-nb-system="${t.system}">${html(system.label)}</button><span>›</span><button type="button" data-nb-system="${t.system}" data-nb-branch="${t.branch}">${html(system.branches[t.branch])}</button></nav><h3>${html(node.title)}</h3><dl class="nb-concept-type"><dt>它是什么</dt><dd>${html(t.kind)}</dd></dl><div class="nb-detail-label nb-purpose-label">用途 / 作用</div><p>${html(node.description)}</p>${t.scope?`<p class="nb-scope-note">${html(t.scope)}</p>`:''}<h4>在哪里学到 · 连接原笔记</h4>${lessons.map(r=>`<button type="button" class="nb-note-link" data-nb-note="${r.course}:${r.index}"><strong>${html(sourceTitle(r))} ↗</strong><span>${sylNotes(r.course)[r.index]?'打开原有笔记':'这讲尚未记笔记'}</span></button>`).join('')}<h4>直接关系 · ${connected.length}</h4>${connected.map(e=>{const other=nodes.find(n=>n.id===(e.from===node.id?e.to:e.from));return `<button type="button" class="nb-relation" data-nb-edge="${e.id}"><small>${e.from===node.id?'→':'←'} ${html(e.label)}</small>${html(other.title)}</button>`;}).join('')||'<p>这里暂时没有核对过的连线。</p>'}<h4>课程依据</h4>${sources(node.refs)}`;
+    return `<div class="nb-detail-label">课上讲过 · ${html(system.label)}</div><nav class="nb-tax-path" aria-label="知识点所属体系"><button type="button" data-nb-system="all">计算机科学</button><span>›</span><button type="button" data-nb-system="${t.system}">${html(system.label)}</button><span>›</span><button type="button" data-nb-system="${t.system}" data-nb-branch="${t.branch}">${html(system.branches[t.branch])}</button></nav><h3>${html(node.title)}</h3><dl class="nb-concept-type"><dt>它是什么</dt><dd>${html(t.kind)}</dd></dl><div class="nb-detail-label nb-purpose-label">用途 / 作用</div><p>${html(node.description)}</p>${t.scope?`<p class="nb-scope-note">${html(t.scope)}</p>`:''}<h4>在哪里学到 · 连接原笔记</h4>${lessons.map(r=>`<button type="button" class="nb-note-link" data-nb-note="${r.course}:${r.index}"><strong>${html(sourceTitle(r))} ↗</strong><span>${sylNotes(r.course)[r.index]?'打开原有笔记':'这讲尚未记笔记'}</span></button>${O[`${r.course}:${r.index}`]?`<button type="button" class="nb-plain" data-nb-official="${r.course}:${r.index}">阅读本讲官方笔记 ↗</button>`:''}`).join('')}<h4>直接关系 · ${connected.length}</h4>${connected.map(e=>{const other=nodes.find(n=>n.id===(e.from===node.id?e.to:e.from));return `<button type="button" class="nb-relation" data-nb-edge="${e.id}"><small>${e.from===node.id?'→':'←'} ${html(e.label)}</small>${html(other.title)}</button>`;}).join('')||'<p>这里暂时没有核对过的连线。</p>'}<h4>课程依据</h4>${sources(node.refs)}`;
   }
   function taxonomyHTML(){
     const all=activeNodes(),system=K.systems[state.system],family=all.filter(taxonomyMatches);
@@ -224,14 +224,15 @@ const Notebook = (() => {
     };
     queue=queue.then(write,write);return queue;
   }
-  function select(key) {save();state.selected=key;state.mode='notes';state.noteSource='mine';state.editing=false;persistView();render();}
+  function select(key,source='mine') {save();state.selected=key;state.mode='notes';state.noteSource=source==='official'?'official':'mine';state.editing=false;persistView();render();}
   function setMode(mode){if(state.mode==='courses'&&openWk)wknCommit(openWk);save();state.mode=mode;persistView();render();}
   function focusEditor(){const el=document.getElementById('nb-editor');if(el)el.focus({preventScroll:true});}
   function updateTransform(){const g=document.getElementById('nb-viewport');if(g)g.setAttribute('transform',`translate(${state.panX} ${state.panY}) translate(600 370) scale(${state.zoom}) translate(-600 -370)`);}
   function handleClick(e) {
-    const target=e.target.closest('[data-nb-mode],[data-nb-note],[data-nb-edit],[data-nb-save],[data-nb-new],[data-nb-node],[data-nb-edge],[data-nb-concept],[data-nb-zoom],[data-nb-copy],[data-nb-duplicate],[data-nb-system],[data-nb-tax-node],[data-nb-source]');
+    const target=e.target.closest('[data-nb-mode],[data-nb-note],[data-nb-edit],[data-nb-save],[data-nb-new],[data-nb-node],[data-nb-edge],[data-nb-concept],[data-nb-zoom],[data-nb-copy],[data-nb-duplicate],[data-nb-system],[data-nb-tax-node],[data-nb-source],[data-nb-official]');
     if(!target)return false;
     const d=target.dataset;
+    if(d.nbOfficial){select(d.nbOfficial,'official');return true;}
     if(d.nbSource){save();beforeRender();state.noteSource=d.nbSource==='official'?'official':'mine';state.editing=false;render();return true;}
     if(d.nbSystem){state.system=d.nbSystem;state.branch=d.nbBranch||'all';state.group='all';state.graphQuery='';state.edge=null;const family=activeNodes().filter(taxonomyMatches);if(!family.some(n=>n.id===state.node))state.node=family[0]?.id||null;render();return true;}
     if(d.nbTaxNode){state.node=d.nbTaxNode;state.edge=null;state.graphQuery='';render();return true;}

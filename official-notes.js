@@ -292,5 +292,23 @@ const NotebookOfficialNotes = {
       "Summing Up"
     ],
     "images": 0
+  },
+  "y1-cs50p:5": {
+    "title": "Unit Tests",
+    "source": "https://cs50.harvard.edu/python/notes/5/",
+    "file": "official-notes/python-5.html",
+    "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+    "retrieved": "2026-11-12",
+    "sha256": "843625793e301096e8794115f47da55e808216976de289dc13e3327d582d198b",
+    "headings": [
+      "Lecture 5",
+      "Unit Tests",
+      "assert",
+      "pytest",
+      "Testing Strings",
+      "Organizing Tests into Folders",
+      "Summing Up"
+    ],
+    "images": 0
   }
 };

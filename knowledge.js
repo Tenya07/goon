@@ -76,6 +76,17 @@ const NotebookKnowledge = (() => {
   n('api','API','python',P,4,'软件之间约定的调用接口。课程以 HTTP API 为例，但 API 不限于网络接口。',['API'],'#apis');
   n('requests','requests','python',P,4,'Python 的第三方 HTTP 客户端包，可以发送请求并读取响应。',['requests'],'#apis');
   n('json','JSON','python',P,4,'交换数据的文本格式。解析后才变成 Python 的字典、列表等对象。',['JSON','json'],'#apis');
+  n('unit-tests','单元测试 Unit Tests','python',P,5,'用代码检查某个函数在选定输入下是否表现符合预期。测试通过说明这些用例通过，不是证明程序永远没有错误。',['unit test','unit tests','单元测试'],'#unit-tests');
+  n('assert','assert 断言','python',P,5,'在测试中表达预期，例如 assert square(2) == 4；断言不成立时抛出 AssertionError。',['assert','断言'],'#assert');
+  n('assertion-error','AssertionError','python',P,5,'断言失败产生的异常。测试报告用它定位实际结果与预期不符的位置。',['AssertionError','断言失败'],'#assert');
+  n('pytest','pytest','python',P,5,'第三方 Python 测试框架。先在所用环境执行 pip install pytest，再用 pytest test_calculator.py 等命令运行测试。',['pytest','pip install pytest'],'#pytest');
+  n('test-cases','测试用例','python',P,5,'选择输入并给出预期：课堂用正数、负数、零和错误类型检查 square，也检查 hello 的默认参数和指定参数。',['测试用例','test case','corner cases'],'#pytest');
+  n('test-functions','测试文件与 test_ 函数','python',P,5,'按课堂约定，在 test_calculator.py 中写 test_positive 等函数。拆成多个测试函数后，一个函数失败，其他测试函数仍可执行；同一函数中未捕获的失败断言会终止该函数。',['test_','test_calculator.py','test_positive'],'#pytest');
+  n('pytest-raises','pytest.raises','python',P,5,'用 with pytest.raises(TypeError): 表达“这里应该抛出 TypeError”。没有抛出预期异常也会使测试失败。',['pytest.raises','异常测试'],'#pytest');
+  n('main-guard','__name__ 与 main 入口','python',P,5,'用 if __name__ == "__main__": 控制入口调用：直接运行脚本时执行 main，测试导入函数时不会自动执行这个入口。',['__name__','__main__','main guard'],'#unit-tests');
+  n('init-py','__init__.py 与测试目录','python',P,5,'课堂在测试目录加入空 __init__.py，把它作为常规 Python 包组织。它影响导入方式，不负责安装 pytest。',['__init__.py','测试目录'],'#organizing-tests-into-folders');
+  nodes.find(x=>x.id==='init-py').refs.push({...ref(P,5),label:'pytest 官方文档 · 测试导入与包布局',url:'https://docs.pytest.org/en/stable/explanation/pythonpath.html'});
+  for (const id of ['function','return','module','library','package','exception']) nodes.find(x=>x.id===id).refs.push(ref(P,5,id==='return'?'#testing-strings':id==='package'?'#organizing-tests-into-folders':'#unit-tests'));
   e('binary','encoding','用于表示','字符先按编码约定对应数字，数字再以位表示。',T,0);
   e('os','cpu','管理资源','操作系统调度处理器资源供程序使用；这不是先后执行的流程线。',T,0);
   e('os','ram','管理资源','操作系统管理内存资源；程序运行时会使用内存。',T,0);
@@ -145,10 +156,28 @@ const NotebookKnowledge = (() => {
   e('api','http','可通过它提供','课程展示的是 HTTP API；并非所有 API 都基于 HTTP。',P,4);
   e('api','json','可用它交换数据','HTTP API 经常返回 JSON，但也可以使用其他格式。',P,4);
   e('json','dict','可解析成','JSON 对象解析后可成为 Python 字典；JSON 文本本身不是 dict。',P,4);
+  e('unit-tests','function','检查函数行为','课堂把 square 和 hello 从交互入口中分离出来，再通过测试调用它们。',P,5,'#unit-tests');
+  e('unit-tests','test-cases','通过用例检查','为选定输入写出预期结果；只检查 square(2) 会漏掉错误的 n+n 实现。',P,5,'#assert');
+  e('unit-tests','pytest','可由框架运行','pytest 自动收集测试、执行测试函数并提供失败报告。单元测试也能不用 pytest 来编写。',P,5,'#pytest');
+  e('assert','boolean','判断条件真假','assert square(2) == 4 检查比较表达式是否为真。',P,5,'#assert');
+  e('assert','assertion-error','失败时抛出','断言为假时产生 AssertionError；断言不是把函数的结果改成正确答案。',P,5,'#assert');
+  e('assertion-error','exception','是一种异常','课堂先用 try/except AssertionError 处理断言失败，再借助 pytest 报告失败。',P,5,'#assert');
+  e('pytest','library','属于第三方库','pytest 是第三方测试框架，不是 Python 自动自带的标准库。',P,5,'#pytest');
+  e('pytest','package','通过 pip 安装','pip install pytest 把框架安装到相应 Python 环境；import pytest 是使用它的另一个步骤。',P,5,'#pytest');
+  e('pytest','test-functions','发现并运行','课堂使用 test_ 文件和函数组织测试；每个测试函数独立执行。',P,5,'#pytest');
+  e('test-functions','assert','表达预期','测试函数内用 assert 比较实际值与预期值。一个函数中的第一个未处理失败会中断该函数。',P,5,'#pytest');
+  e('test-functions','test-cases','组织不同情况','正数、负数、零拆成不同测试函数，避免一个失败遮住其余类别。',P,5,'#pytest');
+  e('pytest','pytest-raises','提供异常检查','pytest.raises 是框架提供的异常断言工具。',P,5,'#pytest');
+  e('pytest-raises','exception','检查预期异常','例如 square("cat") 应产生 TypeError；用测试确认这个失败方式。',P,5,'#pytest');
+  e('unit-tests','return','课堂用返回值比较','hello 原本只 print，测试拿不到预期字符串。课堂改成 return 字符串，再在 main 中 print。',P,5,'#testing-strings');
+  e('test-functions','module','导入被测代码','from calculator import square 导入被测函数，不是在测试文件里复制一份实现。',P,5,'#unit-tests');
+  e('main-guard','module','区分运行与导入','测试导入模块时，__name__ 不是 "__main__"，因此受该条件保护的 main 调用不会执行。',P,5,'#unit-tests');
+  e('init-py','package','标识常规包','课堂用 __init__.py 把测试目录组织为包；具体 pytest 导入布局也允许不含该文件的测试目录。',P,5,'#organizing-tests-into-folders');
+  edges.find(x=>x.id==='init-py--package').refs.push({...ref(P,5),label:'pytest 官方文档 · 测试导入与包布局',url:'https://docs.pytest.org/en/stable/explanation/pythonpath.html'});
   // A learning taxonomy is separate from semantic edges and lecture colors.
   // Its containers are navigation, not extra facts/nodes or prerequisites.
   const systems={
-    python:{label:'Python 编程',color:'#e6c98e',branches:{basics:'名称与函数',types:'数据类型',flow:'控制流程',errors:'异常处理',reuse:'库与代码复用',cli:'命令行输入'}},
+    python:{label:'Python 编程',color:'#e6c98e',branches:{basics:'名称与函数',types:'数据类型',flow:'控制流程',errors:'异常处理',reuse:'库与代码复用',cli:'命令行输入',testing:'单元测试与验证'}},
     web:{label:'Web 开发',color:'#79d8ca',branches:{structure:'网页结构 · HTML',style:'网页样式 · CSS',interaction:'网页交互 · JavaScript',client:'客户端与服务端'}},
     network:{label:'计算机网络',color:'#85b9fc',branches:{address:'地址与名称',transport:'数据传输',application:'应用层通信'}},
     hardware:{label:'计算机基础',color:'#b4a4e8',branches:{representation:'数据表示',components:'硬件组成',system:'系统软件'}},
@@ -163,6 +192,8 @@ const NotebookKnowledge = (() => {
   classify('python','errors',[['exception','运行时异常机制'],['try','异常处理语句']]);
   classify('python','reuse',[['library','可复用代码的统称','库不是 Python 独有；这里展示 CS50P 中的库与使用方式。'],['module','代码组织 / 导入语句'],['random','标准库模块','随 Python 提供；不需要用 pip 安装。'],['package','代码组织 / 包安装工具','包与 pip 是组合知识点：包组织代码，pip 安装分发包；安装与 import 是不同步骤。'],['requests','第三方 HTTP 客户端库','不是 Python 标准库；需要在相应环境安装。']]);
   classify('python','cli',[['argv','sys 模块中的字符串列表','sys 属于 Python 标准库；argv 是其中的列表，不是独立的库。']]);
+  classify('python','testing',[['unit-tests','验证函数行为的方法'],['assert','Python 断言语句','这里用于测试预期；断言不替代实际运行中的输入验证。'],['assertion-error','断言失败异常'],['pytest','第三方测试框架','需要安装到相应环境；不是 Python 自带模块。'],['test-cases','输入与预期结果'],['test-functions','测试收集与组织约定'],['pytest-raises','框架提供的异常断言工具']]);
+  classify('python','reuse',[['main-guard','模块入口保护惯用写法'],['init-py','常规包的初始化文件','并非所有 pytest 测试目录都必须有 __init__.py；这里说明课堂使用的包布局。']]);
   classify('web','structure',[['html','标记语言'],['tags','元素的语法表示'],['link','HTML 超链接元素 / 属性'],['form','HTML 表单元素']]);
   classify('web','style',[['css','样式表语言']]);
   classify('web','interaction',[['javascript','编程语言','JavaScript 也可用于浏览器外；这里对应网页开发课。']]);
