@@ -1,10 +1,10 @@
 /* A real XYZ layout with perspective projection. Canvas rendering keeps this
    small graph usable without a CDN, WebGL support, or an always-running loop. */
 const NotebookGraph3D = (() => {
-  const view={yaw:.48,pitch:-.22,zoom:1.3,panX:0,panY:0,auto:false};
+  const view={yaw:.16,pitch:-.08,zoom:1.5,panX:0,panY:0,auto:false,crossLinks:false};
   const layouts=new Map();let active=null;
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-  const initial=()=>Object.assign(view,{yaw:.48,pitch:-.22,zoom:1.3,panX:0,panY:0,auto:false});
+  const initial=()=>Object.assign(view,{yaw:.16,pitch:-.08,zoom:1.5,panX:0,panY:0,auto:false,crossLinks:false});
   function rotate(p,yaw,pitch) {
     const cy=Math.cos(yaw),sy=Math.sin(yaw),cx=Math.cos(pitch),sx=Math.sin(pitch);
     const x=p.x*cy+p.z*sy,z=-p.x*sy+p.z*cy;
@@ -19,23 +19,47 @@ const NotebookGraph3D = (() => {
     return {x:width/2+rotated.x*focal/depth+camera.panX,y:height/2-rotated.y*focal/depth+camera.panY,
       z:rotated.z,depth,scale:clamp(distance/depth,.48,2.2)};
   }
-  function layout(nodes,edges,groups) {
-    const key=nodes.map(n=>n.id+':'+n.group).join('|');if(layouts.has(key))return layouts.get(key);
-    const names=Object.keys(groups),centers=[[-130,90,130],[170,90,-90],[-190,-80,-120],[120,-130,-150],[20,-150,160],[160,90,160],[0,190,-50]];
-    const points=new Map(nodes.map((n,i)=>{const c=centers[names.indexOf(n.group)]||[0,0,0],a=i*2.399963,b=Math.acos(1-2*((i*.61803398875)%1));return[n.id,{x:c[0]+80*Math.sin(b)*Math.cos(a),y:c[1]+80*Math.sin(b)*Math.sin(a),z:c[2]+80*Math.cos(b)}];}));
-    for(let pass=0;pass<130;pass++) {
-      const force=new Map(nodes.map(n=>[n.id,{x:0,y:0,z:0}]));
-      for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
-        const a=points.get(nodes[i].id),b=points.get(nodes[j].id);let dx=a.x-b.x,dy=a.y-b.y,dz=a.z-b.z;
-        const d=Math.hypot(dx,dy,dz)||1,f=Math.min(8,2600/(d*d));
-        for(const [axis,v] of [['x',dx],['y',dy],['z',dz]]){force.get(nodes[i].id)[axis]+=v/d*f;force.get(nodes[j].id)[axis]-=v/d*f;}
-      }
-      for(const edge of edges){const a=points.get(edge.from),b=points.get(edge.to);if(!a||!b)continue;const d=Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)||1,f=(d-110)*.013;for(const axis of ['x','y','z']){const delta=(b[axis]-a[axis])/d*f;force.get(edge.from)[axis]+=delta;force.get(edge.to)[axis]-=delta;}}
-      for(const n of nodes){const p=points.get(n.id),f=force.get(n.id),center=centers[names.indexOf(n.group)]||[0,0,0];for(const [index,axis] of ['x','y','z'].entries())p[axis]+=f[axis]+(center[index]-p[axis])*.006;}
+  function layout(nodes,edges,groups,focus={}) {
+    const key=String(focus.system||'all')+'|'+nodes.map(n=>n.id+':'+n.group+':'+n.taxonomy?.branch).join('|');
+    if(layouts.has(key))return layouts.get(key);
+    const buckets=new Map(),membership=new Map(),points=new Map();
+    for(const node of nodes){
+      const system=node.taxonomy?.system||node.group;
+      const branch=focus.system===system?node.taxonomy?.branch:null;
+      const id=system+(branch?':'+branch:'');
+      if(!buckets.has(id))buckets.set(id,{id,system,branch:branch||'all',title:branch?groups[system].branches[branch]:groups[system].label,parent:branch?groups[system].label:'',color:groups[system].color,nodes:[]});
+      buckets.get(id).nodes.push(node);membership.set(node.id,id);
     }
-    const middle={x:0,y:0,z:0};for(const p of points.values())for(const axis of ['x','y','z'])middle[axis]+=p[axis]/Math.max(nodes.length,1);
-    let radius=100;for(const p of points.values()){for(const axis of ['x','y','z'])p[axis]-=middle[axis];radius=Math.max(radius,Math.hypot(p.x,p.y,p.z));}
-    const result={points,radius};layouts.set(key,result);return result;
+    const clusters=[...buckets.values()].sort((a,b)=>Object.keys(groups).indexOf(a.system)-Object.keys(groups).indexOf(b.system)||a.id.localeCompare(b.id));
+    const overview={python:[-250,100,50],web:[70,200,-45],network:[290,-10,40],hardware:[-250,-200,-50],media:[45,-225,55],security:[-10,-20,-65],shared:[300,240,-15]};
+    for(const [index,cluster] of clusters.entries()){
+      const columns=Math.ceil(Math.sqrt(clusters.length)),rows=Math.ceil(clusters.length/Math.max(columns,1));
+      const c=focus.system&&focus.system!=='all'?[(index%columns-(columns-1)/2)*265,((rows-1)/2-Math.floor(index/columns))*210,((index%3)-1)*50]:overview[cluster.system]||[0,0,0];
+      cluster.center={x:c[0],y:c[1],z:c[2]};
+      const branches=[...new Set(cluster.nodes.map(n=>n.taxonomy?.branch||''))].sort();
+      const spread=38+Math.sqrt(cluster.nodes.length)*17;
+      for(const branch of branches){
+        const family=cluster.nodes.filter(n=>(n.taxonomy?.branch||'')===branch),bi=branches.indexOf(branch),ba=bi*Math.PI*2/branches.length;
+        const ring=branches.length>1?spread*.57:0,local=family.length>1?18+Math.sqrt(family.length)*10:0;
+        family.forEach((node,i)=>{const a=i*2.399963,z=(i/Math.max(1,family.length-1)-.5)*62;
+          points.set(node.id,{x:c[0]+Math.cos(ba)*ring+Math.cos(a)*local,y:c[1]+Math.sin(ba)*ring+Math.sin(a)*local,z:c[2]+Math.sin(ba)*28+z});});
+      }
+    }
+    // Membership determines placement. Cross-system relationships cannot pull
+    // a concept out of its category; no artificial membership edges are added.
+    const middle={x:0,y:0,z:0};
+    if(points.size)for(const axis of ['x','y','z']){const values=[...points.values()].map(p=>p[axis]);middle[axis]=(Math.min(...values)+Math.max(...values))/2;}
+    let radius=100;
+    for(const p of points.values()){for(const axis of ['x','y','z'])p[axis]-=middle[axis];radius=Math.max(radius,Math.hypot(p.x,p.y,p.z)+55);}
+    for(const cluster of clusters)for(const axis of ['x','y','z'])cluster.center[axis]-=middle[axis];
+    const result={points,radius,clusters,membership};layouts.set(key,result);return result;
+  }
+  function hull(points){
+    if(points.length<3)return points;
+    const sorted=[...points].sort((a,b)=>a.x-b.x||a.y-b.y),cross=(a,b,c)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x),lower=[],upper=[];
+    for(const p of sorted){while(lower.length>1&&cross(lower.at(-2),lower.at(-1),p)<=0)lower.pop();lower.push(p);}
+    for(const p of [...sorted].reverse()){while(upper.length>1&&cross(upper.at(-2),upper.at(-1),p)<=0)upper.pop();upper.push(p);}
+    return lower.slice(0,-1).concat(upper.slice(0,-1));
   }
   function dispose(){if(active){active.dispose();active=null;}}
   // Decorative sky only: stars never participate in the knowledge graph or hit tests.
@@ -85,17 +109,46 @@ const NotebookGraph3D = (() => {
     dispose();if(!container||!model.nodes.length)return false;
     const canvas=container.querySelector('canvas'),context=canvas?.getContext('2d');if(!context)return false;
     const labels=container.querySelector('.nb-3d-labels'),hud=container.querySelector('.nb-3d-orientation');
-    const geometry=layout(model.nodes,model.edges,model.groups),abort=new AbortController(),pointer=new Map();
+    const geometry=layout(model.nodes,model.edges,model.groups,{system:model.focusSystem}),abort=new AbortController(),pointer=new Map();
     let width=1,height=1,frame=0,disposed=false,lastFrame=0,projected=new Map(),edgeSegments=[],start=null,gesture=null,suppressClick=false,dirty=true,paintSky=null;
-    const labelMap=new Map(),connected=new Set([model.selectedNode]);
+    const labelMap=new Map(),clusterLabels=new Map(),connected=new Set([model.selectedNode]);
     for(const edge of model.edges)if(edge.from===model.selectedNode||edge.to===model.selectedNode){connected.add(edge.from);connected.add(edge.to);}
     for(const node of model.nodes){const button=document.createElement('button');button.type='button';button.className='nb-3d-label';button.dataset.nbNode=node.id;button.setAttribute('aria-label','知识点：'+node.title);button.textContent=node.title;button.style.setProperty('--node-color',model.groups[node.group].color);labels.appendChild(button);labelMap.set(node.id,button);}
+    for(const cluster of geometry.clusters){
+      const button=document.createElement('button');button.type='button';button.className='nb-3d-cluster';button.dataset.graphCluster=cluster.id;
+      button.setAttribute('aria-label','展开分类：'+(cluster.parent?cluster.parent+' / ':'')+cluster.title+'，'+cluster.nodes.length+' 个知识点');
+      button.style.setProperty('--cluster-color',cluster.color);
+      if(cluster.parent){const parent=document.createElement('small');parent.textContent=cluster.parent;button.appendChild(parent);}
+      const title=document.createElement('strong');title.textContent=cluster.title;button.appendChild(title);
+      const detail=document.createElement('span');detail.textContent=cluster.nodes.length+' 个知识点 · 点此展开';button.appendChild(detail);
+      labels.appendChild(button);clusterLabels.set(cluster.id,button);
+    }
     function draw() {
       context.clearRect(0,0,width,height);if(paintSky)paintSky(context,view);projected=new Map();edgeSegments=[];
       for(const node of model.nodes){const point=project(geometry.points.get(node.id),view,width,height,geometry.radius);if(point)projected.set(node.id,point);}
+      const categoryBoxes=[{left:0,right:170,top:0,bottom:57}];
+      const clusterOrder=[...geometry.clusters].sort((a,b)=>(project(a.center,view,width,height,geometry.radius)?.y||0)-(project(b.center,view,width,height,geometry.radius)?.y||0));
+      for(const cluster of clusterOrder){
+        const members=cluster.nodes.map(n=>projected.get(n.id)).filter(Boolean),label=clusterLabels.get(cluster.id);
+        if(!members.length){label.hidden=true;continue;}
+        const outline=hull(members.flatMap(p=>Array.from({length:8},(_,i)=>({x:p.x+Math.cos(i*Math.PI/4)*24,y:p.y+Math.sin(i*Math.PI/4)*28}))));
+        context.globalAlpha=.055;context.fillStyle=cluster.color;context.beginPath();outline.forEach((p,i)=>i?context.lineTo(p.x,p.y):context.moveTo(p.x,p.y));context.closePath();context.fill();
+        context.globalAlpha=.35;context.strokeStyle=cluster.color;context.lineWidth=1;context.setLineDash([5,6]);context.stroke();context.setLineDash([]);
+        const minY=Math.min(...members.map(p=>p.y)),maxX=Math.max(...members.map(p=>p.x)),minX=Math.min(...members.map(p=>p.x));
+        const w=label.offsetWidth||150,h=label.offsetHeight||(cluster.parent?65:48),anchorX=(minX+maxX)/2;
+        let x=clamp(anchorX,w/2+14,width-w/2-14),y=clamp(minY-h-30,18,height-h-68);
+        const base={x,y},collides=(x,y)=>categoryBoxes.some(b=>x-w/2<b.right+6&&x+w/2>b.left-6&&y<b.bottom+5&&y+h>b.top-5);
+        const choices=[[0,0],[-w*.6,0],[w*.6,0],[0,-h-12],[-w-8,0],[w+8,0],[0,h+12]];
+        for(const [dx,dy] of choices){const nx=clamp(base.x+dx,w/2+14,width-w/2-14),ny=clamp(base.y+dy,18,height-h-68);if(!collides(nx,ny)){x=nx;y=ny;break;}}
+        categoryBoxes.push({left:x-w/2,right:x+w/2,top:y,bottom:y+h});
+        context.globalAlpha=.55;context.strokeStyle=cluster.color;context.lineWidth=.8;context.beginPath();context.moveTo(x,y+h);context.lineTo(anchorX,minY-14);context.stroke();
+        label.hidden=false;label.style.transform=`translate(${x}px,${y}px) translateX(-50%)`;
+      }
       const orderedEdges=[...model.edges].sort((a,b)=>((projected.get(a.from)?.z||0)+(projected.get(a.to)?.z||0))-((projected.get(b.from)?.z||0)+(projected.get(b.to)?.z||0)));
       for(const edge of orderedEdges){const a=projected.get(edge.from),b=projected.get(edge.to);if(!a||!b)continue;const selected=model.selectedEdge===edge.id,near=edge.from===model.selectedNode||edge.to===model.selectedNode;
-        context.strokeStyle=selected?'#f2cb8e':near?'#93e7d6':'#7d91b7';context.globalAlpha=selected?1:near?.78:.25;context.lineWidth=selected?2.2:near?1.3:.7;
+        const crosses=geometry.membership.get(edge.from)!==geometry.membership.get(edge.to);
+        if(crosses&&!view.crossLinks&&!selected&&!near)continue;
+        context.strokeStyle=selected?'#f2cb8e':near?'#93e7d6':'#7d91b7';context.globalAlpha=selected?1:near?.78:crosses?.15:.24;context.lineWidth=selected?2.2:near?1.3:.7;
         if(selected||near){context.shadowColor=selected?'#edbb714d':'#79d8ca66';context.shadowBlur=selected?12:6;}
         context.beginPath();context.moveTo(a.x,a.y);context.lineTo(b.x,b.y);context.stroke();
         context.shadowBlur=0;
@@ -119,7 +172,7 @@ const NotebookGraph3D = (() => {
       }
       // Keep labels legible: selected/connected nodes get first choice; rotating
       // reveals labels that were behind others without hiding their sphere.
-      const occupied=[];context.font='11px "Microsoft YaHei", sans-serif';
+      const occupied=[...categoryBoxes];context.font='11px "Microsoft YaHei", sans-serif';
       const labelOrder=[...orderedNodes].sort((a,b)=>{
         const rank=n=>n.id===model.selectedNode?3:connected.has(n.id)?2:1;
         return rank(b)-rank(a)||(projected.get(b.id)?.z||0)-(projected.get(a.id)?.z||0);
@@ -142,7 +195,7 @@ const NotebookGraph3D = (() => {
     const observer=new ResizeObserver(resize);observer.observe(container);resize();
     const listen=(target,type,fn,options={})=>target.addEventListener(type,fn,{...options,signal:abort.signal});
     const pair=()=>{const [a,b]=[...pointer.values()];return a&&b?{distance:Math.hypot(a.x-b.x,a.y-b.y),x:(a.x+b.x)/2,y:(a.y+b.y)/2}:null;};
-    listen(container,'pointerdown',event=>{if(event.button>2)return;pointer.set(event.pointerId,{x:event.clientX,y:event.clientY});suppressClick=false;start={x:event.clientX,y:event.clientY,moved:false,pan:event.button===2||event.shiftKey,node:event.target.closest('[data-nb-node]')?.dataset.nbNode};if(pointer.size>1)start.moved=true;gesture=pair();container.setPointerCapture(event.pointerId);});
+    listen(container,'pointerdown',event=>{if(event.button>2)return;pointer.set(event.pointerId,{x:event.clientX,y:event.clientY});suppressClick=false;start={x:event.clientX,y:event.clientY,moved:false,pan:event.button===2||event.shiftKey,node:event.target.closest('[data-nb-node]')?.dataset.nbNode,cluster:event.target.closest('[data-graph-cluster]')?.dataset.graphCluster};if(pointer.size>1)start.moved=true;gesture=pair();container.setPointerCapture(event.pointerId);});
     listen(container,'pointermove',event=>{const previous=pointer.get(event.pointerId);if(!previous)return;const dx=event.clientX-previous.x,dy=event.clientY-previous.y;pointer.set(event.pointerId,{x:event.clientX,y:event.clientY});if(start&&Math.hypot(event.clientX-start.x,event.clientY-start.y)>4)start.moved=true;
       if(pointer.size>1){const next=pair();if(next&&gesture){view.zoom=clamp(view.zoom*next.distance/Math.max(gesture.distance,1),.35,4);view.panX+=next.x-gesture.x;view.panY+=next.y-gesture.y;}gesture=next;}
       else if(start?.pan){view.panX+=dx;view.panY+=dy;}
@@ -153,15 +206,16 @@ const NotebookGraph3D = (() => {
       const hit=edgeSegments.map(s=>{const dx=s.b.x-s.a.x,dy=s.b.y-s.a.y,t=clamp(((x-s.a.x)*dx+(y-s.a.y)*dy)/(dx*dx+dy*dy||1),0,1);return {edge:s.edge,distance:Math.hypot(x-s.a.x-t*dx,y-s.a.y-t*dy)};}).filter(h=>h.distance<7).sort((a,b)=>a.distance-b.distance)[0];
       if(hit)model.onEdge(hit.edge.id);
     }
-    listen(container,'pointerup',event=>{const finished=start;pointer.delete(event.pointerId);gesture=pair();if(!pointer.size)start=null;suppressClick=true;event.preventDefault();if(finished&&!finished.moved&&event.button!==2){if(finished.node)model.onNode(finished.node);else pick(event);}});
+    function openCluster(id){const cluster=geometry.clusters.find(c=>c.id===id);if(cluster)model.onGroup?.(cluster.system,cluster.branch);}
+    listen(container,'pointerup',event=>{const finished=start;pointer.delete(event.pointerId);gesture=pair();if(!pointer.size)start=null;suppressClick=true;event.preventDefault();if(finished&&!finished.moved&&event.button!==2){if(finished.cluster)openCluster(finished.cluster);else if(finished.node)model.onNode(finished.node);else pick(event);}});
     listen(container,'pointercancel',()=>{pointer.clear();start=null;gesture=null;});
-    listen(container,'click',event=>{if(suppressClick&&event.detail){suppressClick=false;event.preventDefault();event.stopPropagation();}}, {capture:true});
+    listen(container,'click',event=>{if(suppressClick&&event.detail){suppressClick=false;event.preventDefault();event.stopPropagation();return;}const cluster=event.target.closest('[data-graph-cluster]');if(cluster&&!event.detail)openCluster(cluster.dataset.graphCluster);}, {capture:true});
     listen(container,'contextmenu',event=>event.preventDefault());
     listen(container,'wheel',event=>{event.preventDefault();view.zoom=clamp(view.zoom*Math.exp(-event.deltaY*.0014),.35,4);dirty=true;request();},{passive:false});
     listen(container,'keydown',event=>{if(event.target!==canvas)return;const keys={ArrowLeft:[-.12,0],ArrowRight:[.12,0],ArrowUp:[0,-.1],ArrowDown:[0,.1]};if(keys[event.key]){event.preventDefault();view.yaw+=keys[event.key][0];view.pitch=clamp(view.pitch+keys[event.key][1],-Math.PI*.48,Math.PI*.48);dirty=true;request();}});
     listen(document,'visibilitychange',()=>{if(!document.hidden){lastFrame=0;dirty=true;request();}});
-    function syncToggle(){const toggle=document.querySelector('[data-nb-zoom="auto"]');if(toggle){toggle.textContent=view.auto?'停止旋转':'自动旋转';toggle.setAttribute('aria-pressed',String(view.auto));}}
-    active={action(name){if(name==='reset')initial();else if(name==='auto')view.auto=!view.auto;else view.zoom=clamp(view.zoom*(name==='in'?1.2:1/1.2),.35,4);lastFrame=0;dirty=true;request();syncToggle();},dispose(){disposed=true;abort.abort();observer.disconnect();if(frame)cancelAnimationFrame(frame);labels.replaceChildren();}};
+    function syncToggle(){const toggle=document.querySelector('[data-nb-zoom="auto"]');if(toggle){toggle.textContent=view.auto?'停止旋转':'自动旋转';toggle.setAttribute('aria-pressed',String(view.auto));}const links=document.querySelector('[data-nb-zoom="links"]');if(links)links.setAttribute('aria-pressed',String(view.crossLinks));}
+    active={action(name){if(name==='reset')initial();else if(name==='auto')view.auto=!view.auto;else if(name==='links')view.crossLinks=!view.crossLinks;else view.zoom=clamp(view.zoom*(name==='in'?1.2:1/1.2),.35,4);lastFrame=0;dirty=true;request();syncToggle();},dispose(){disposed=true;abort.abort();observer.disconnect();if(frame)cancelAnimationFrame(frame);labels.replaceChildren();}};
     syncToggle();
     return true;
   }

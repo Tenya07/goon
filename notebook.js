@@ -166,7 +166,8 @@ const Notebook = (() => {
   }
   function graphScene(nodes,edges) {
     if(!nodes.length||typeof NotebookGraph3D==='undefined'){pendingGraph=null;return graphSVG(nodes,edges);}
-    pendingGraph={nodes:nodes.map(n=>({...n,group:n.taxonomy.system})),edges,groups:K.systems,selectedNode:state.node,selectedEdge:state.edge,
+    pendingGraph={nodes:nodes.map(n=>({...n,group:n.taxonomy.system})),edges,groups:K.systems,focusSystem:state.system,selectedNode:state.node,selectedEdge:state.edge,
+      onGroup(system,branch){state.system=system;state.branch=branch;state.graphQuery='';state.edge=null;const family=activeNodes().filter(taxonomyMatches);if(!family.some(n=>n.id===state.node))state.node=family[0]?.id||null;render();},
       onNode(id){state.node=id;state.edge=null;render();},onEdge(id){state.edge=id;render();}};
     return '<div class="nb-three" id="nb-three"><canvas tabindex="0" aria-label="三维知识网；可拖动旋转、缩放，也可用方向键旋转。"></canvas><div class="nb-3d-labels"></div><span class="nb-3d-orientation" aria-hidden="true">3D</span></div>';
   }
@@ -182,9 +183,9 @@ const Notebook = (() => {
     const {nodes,edges}=graphData(); if(state.node&&!nodes.some(n=>n.id===state.node)){state.node=null;state.edge=null;}
     const notReviewed=records().filter(r=>r.seen&&!K.nodes.some(n=>n.refs.some(f=>f.course===r.course&&f.index===r.index)));
     return `<div class="nb-map-intro"><p>${nodes.length} 个已学知识点 · ${edges.length} 条有解释的关系。课上讲过 ≠ 已经掌握。</p><div class="nb-map-controls"><input type="search" id="nb-graph-search" placeholder="搜索名称、分类、用途…" value="${html(state.graphQuery)}" aria-label="搜索知识点"></div></div>
-      ${taxonomyHTML()}<div class="nb-map-layout"><section class="nb-map-canvas" aria-label="可旋转的三维知识网">${graphScene(nodes,edges)}
-      <div class="nb-map-buttons"><button type="button" data-nb-zoom="in" aria-label="放大知识网">＋</button><button type="button" data-nb-zoom="out" aria-label="缩小知识网">−</button><button type="button" data-nb-zoom="reset">复位</button><button type="button" data-nb-zoom="auto" aria-pressed="false">自动旋转</button></div>
-      <div class="nb-legend">${Object.entries(K.systems).filter(([id])=>activeNodes().some(n=>n.taxonomy.system===id)).map(([id,g])=>`<button type="button" data-nb-system="${id}"><i style="background:${g.color}"></i>${html(g.label)}</button>`).join('')}<span>颜色 = 所属体系 · 拖动旋转 · 双指缩放 · 点连线查看关系</span></div></section><aside class="nb-map-detail" aria-label="知识关系详情">${graphDetail(nodes,edges)}</aside></div>${notReviewed.length?`<p class="nb-save">另有 ${notReviewed.length} 讲已标记看完，知识关系待核对，暂不生成猜测连线。</p>`:''}`;
+      ${taxonomyHTML()}<div class="nb-map-layout"><section class="nb-map-canvas" aria-label="可旋转的三维知识网"><div class="nb-cluster-guide"><b>${state.system==='all'?'按体系分区':html(K.systems[state.system].label)+' · 按分类展开'}</b><span>点星区标题逐层展开 · 边界表示归属，箭头表示知识关系</span>${state.system!=='all'?'<button type="button" data-nb-system="all">返回全部体系</button>':''}</div>${graphScene(nodes,edges)}
+      <div class="nb-map-buttons"><button type="button" data-nb-zoom="in" aria-label="放大知识网">＋</button><button type="button" data-nb-zoom="out" aria-label="缩小知识网">−</button><button type="button" data-nb-zoom="reset">复位</button><button type="button" data-nb-zoom="auto" aria-pressed="false">自动旋转</button><button type="button" data-nb-zoom="links" aria-pressed="false">跨区连线</button></div>
+      <div class="nb-legend">${Object.entries(K.systems).filter(([id])=>activeNodes().some(n=>n.taxonomy.system===id)).map(([id,g])=>`<button type="button" data-nb-system="${id}"><i style="background:${g.color}"></i>${html(g.label)}</button>`).join('')}<span>选中知识点可突出跨区关系 · 拖动旋转 · 双指缩放</span></div></section><aside class="nb-map-detail" aria-label="知识关系详情">${graphDetail(nodes,edges)}</aside></div>${notReviewed.length?`<p class="nb-save">另有 ${notReviewed.length} 讲已标记看完，知识关系待核对，暂不生成猜测连线。</p>`:''}`;
   }
   function renderWorkspace() {
     loadDrafts();
