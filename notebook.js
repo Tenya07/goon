@@ -3,7 +3,7 @@
 const Notebook = (() => {
   const K = NotebookKnowledge;
   const O = typeof NotebookOfficialNotes==='undefined'?{}:NotebookOfficialNotes;
-  const state = {mode:'notes', selected:'y1-cs50t:4', noteSource:'mine', editing:false, query:'', course:'all', group:'all', system:'all', branch:'all', node:'html', edge:null, graphQuery:'', zoom:1, panX:0, panY:0};
+  const state = {mode:'notes', selected:'y1-cs50t:4', noteSource:'mine', editing:false, query:'', course:'all', group:'all', system:'all', branch:'all', node:'html', edge:null, graphQuery:'', mapView:'tree',treeSystem:'python',treeBranch:'basics',zoom:1, panX:0, panY:0};
   const officialScroll=new Map();
   let accountKey = null, drafts = {}, statuses = {}, timer = null, queue = Promise.resolve(), drag = null, positionsCache = new Map(), pendingGraph = null;
   const html = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -20,7 +20,7 @@ const Notebook = (() => {
     accountKey=key; drafts={}; statuses={};
     officialScroll.clear();
     try { drafts=JSON.parse(localStorage.getItem(key)||'{}'); } catch(_) {}
-    Object.assign(state,{mode:'notes',selected:'y1-cs50t:4',noteSource:'mine',editing:false,query:'',course:'all',node:'html',edge:null,group:'all',system:'all',branch:'all',graphQuery:''});
+    Object.assign(state,{mode:'notes',selected:'y1-cs50t:4',noteSource:'mine',editing:false,query:'',course:'all',node:'html',edge:null,group:'all',system:'all',branch:'all',graphQuery:'',mapView:'tree',treeSystem:'python',treeBranch:'basics'});
     try {const view=JSON.parse(localStorage.getItem(key+':view')||'{}');if(['notes','map','courses'].includes(view.mode))state.mode=view.mode;if(typeof view.selected==='string')state.selected=view.selected;}catch(_){}
   }
   function persistView(){if(!accountKey)return;try{localStorage.setItem(accountKey+':view',JSON.stringify({mode:state.mode,selected:state.selected}));}catch(_) {}}
@@ -179,10 +179,36 @@ const Notebook = (() => {
     if(!container||!pendingGraph){NotebookGraph3D.dispose();return;}
     if(!NotebookGraph3D.mount(container,pendingGraph))container.innerHTML=graphSVG(pendingGraph.nodes,pendingGraph.edges);
   }
+  function mapViewTabs(){return `<div class="nb-map-view" aria-label="知识网显示方式"><button type="button" data-nb-map-view="tree" aria-pressed="${state.mapView==='tree'}">分类归属</button><button type="button" data-nb-map-view="3d" aria-pressed="${state.mapView==='3d'}">3D 关系网</button></div>`;}
+  function treeDetail(node,all){
+    if(!node)return '<p>选择一个知识点，查看它的说明。</p>';
+    const taxonomy=node.taxonomy,system=K.systems[taxonomy.system],relations=activeEdges(all).filter(e=>e.from===node.id||e.to===node.id);
+    const lessons=[...new Map(node.refs.filter(watched).map(r=>[`${r.course}:${r.index}`,r])).values()];
+    return `<div class="nb-detail-label">知识点说明</div><h3>${html(node.title)}</h3><p class="nb-tree-belongs">属于：<b>${html(system.label)}</b> → <b>${html(system.branches[taxonomy.branch])}</b></p><dl class="nb-concept-type"><dt>它是什么</dt><dd>${html(taxonomy.kind)}</dd></dl><p>${html(node.description)}</p>${taxonomy.scope?`<details class="nb-tree-extra"><summary>补充说明</summary><p>${html(taxonomy.scope)}</p></details>`:''}<h4>课上在哪里讲过</h4>${lessons.map(r=>`<button type="button" class="nb-note-link" data-nb-note="${r.course}:${r.index}"><strong>${html(sourceTitle(r))} ↗</strong><span>我的笔记</span></button>${O[`${r.course}:${r.index}`]?`<button type="button" class="nb-plain" data-nb-official="${r.course}:${r.index}">阅读本讲官方笔记 ↗</button>`:''}`).join('')}<details class="nb-tree-extra"><summary>相关知识 · ${relations.length}</summary><p class="nb-save">这里是知识之间的联系，不代表分类归属。</p>${relations.map(e=>{const other=all.find(n=>n.id===(e.from===node.id?e.to:e.from));return `<button type="button" class="nb-relation" data-nb-tree-node="${other.id}"><small>${html(e.label)}</small>${html(other.title)}</button>`;}).join('')}</details><details class="nb-tree-extra"><summary>查看来源</summary>${sources(node.refs)}</details>`;
+  }
+  function treeHTML(){
+    pendingGraph=null;
+    const all=activeNodes(),systems=Object.entries(K.systems).filter(([id])=>all.some(n=>n.taxonomy.system===id));
+    const selectedSystem=systems.find(([id])=>id===state.treeSystem)||systems[0];
+    if(!selectedSystem)return mapViewTabs()+'<div class="nb-map-empty">还没有已看课程的知识点。</div>';
+    const [systemId,system]=selectedSystem,branches=Object.entries(system.branches).filter(([id])=>all.some(n=>n.taxonomy.system===systemId&&n.taxonomy.branch===id));
+    const [branchId,branchTitle]=branches.find(([id])=>id===state.treeBranch)||branches[0];
+    state.treeSystem=systemId;state.treeBranch=branchId;
+    const family=all.filter(n=>n.taxonomy.system===systemId&&n.taxonomy.branch===branchId);
+    const node=family.find(n=>n.id===state.node)||family[0];
+    if(node)state.node=node.id;
+    const query=normalize(state.graphQuery.trim()),results=query?all.filter(n=>searchText(n).includes(query)):[];
+    const column=(title,subtitle,body)=>`<section class="nb-tree-column"><header><h3>${title}</h3><p>${subtitle}</p></header><div class="nb-tree-options">${body}</div></section>`;
+    const columns=column('体系','先选一个学习领域',systems.map(([id,s])=>`<button type="button" data-nb-tree-system="${id}" aria-pressed="${id===systemId}"><span>${html(s.label)}</span><small>${all.filter(n=>n.taxonomy.system===id).length}</small></button>`).join(''))+
+      column('分类',html(system.label)+'里面的分类',branches.map(([id,label])=>`<button type="button" data-nb-tree-branch="${id}" aria-pressed="${id===branchId}"><span>${html(label)}</span><small>${all.filter(n=>n.taxonomy.system===systemId&&n.taxonomy.branch===id).length}</small></button>`).join(''))+
+      column('知识点',html(branchTitle)+'包含的知识点',family.map(n=>`<button type="button" data-nb-tree-node="${n.id}" aria-pressed="${n.id===state.node}"><span>${html(n.title)}</span></button>`).join(''));
+    return `${mapViewTabs()}<div class="nb-map-intro"><p>从左往右看：体系 → 分类 → 知识点。</p><div class="nb-map-controls"><input type="search" id="nb-graph-search" placeholder="搜索知识点，例如 pytest" value="${html(state.graphQuery)}" aria-label="搜索知识点"></div></div>${query?`<section class="nb-tree-results" aria-label="知识点搜索结果"><h3>搜索结果 · ${results.length}</h3>${results.map(n=>`<button type="button" data-nb-tree-node="${n.id}"><strong>${html(n.title)}</strong><span>${html(K.systems[n.taxonomy.system].label)} → ${html(K.systems[n.taxonomy.system].branches[n.taxonomy.branch])} → ${html(n.title)}</span></button>`).join('')||'<p>没有匹配的知识点，换个词试试。</p>'}</section>`:''}<div class="nb-tree-path" aria-label="当前知识点的分类路径"><span>${html(system.label)}</span><b>→</b><span>${html(branchTitle)}</span><b>→</b><strong>${html(node?.title||'')}</strong></div><div class="nb-tree-layout"><div class="nb-tree-columns" aria-label="知识分类三栏">${columns}</div><aside class="nb-map-detail" aria-label="知识点说明">${treeDetail(node,all)}</aside></div>`;
+  }
   function mapHTML() {
+    if(state.mapView==='tree')return treeHTML();
     const {nodes,edges}=graphData(); if(state.node&&!nodes.some(n=>n.id===state.node)){state.node=null;state.edge=null;}
     const notReviewed=records().filter(r=>r.seen&&!K.nodes.some(n=>n.refs.some(f=>f.course===r.course&&f.index===r.index)));
-    return `<div class="nb-map-intro"><p>${nodes.length} 个已学知识点 · ${edges.length} 条有解释的关系。课上讲过 ≠ 已经掌握。</p><div class="nb-map-controls"><input type="search" id="nb-graph-search" placeholder="搜索名称、分类、用途…" value="${html(state.graphQuery)}" aria-label="搜索知识点"></div></div>
+    return `${mapViewTabs()}<div class="nb-map-intro"><p>${nodes.length} 个已学知识点 · ${edges.length} 条有解释的关系。课上讲过 ≠ 已经掌握。</p><div class="nb-map-controls"><input type="search" id="nb-graph-search" placeholder="搜索名称、分类、用途…" value="${html(state.graphQuery)}" aria-label="搜索知识点"></div></div>
       ${taxonomyHTML()}<div class="nb-map-layout"><section class="nb-map-canvas" aria-label="可旋转的三维知识网"><div class="nb-cluster-guide"><b>${state.system==='all'?'按体系分区':html(K.systems[state.system].label)+' · 按分类展开'}</b><span>点星区标题逐层展开 · 边界表示归属，箭头表示知识关系</span>${state.system!=='all'?'<button type="button" data-nb-system="all">返回全部体系</button>':''}</div>${graphScene(nodes,edges)}
       <div class="nb-map-buttons"><button type="button" data-nb-zoom="in" aria-label="放大知识网">＋</button><button type="button" data-nb-zoom="out" aria-label="缩小知识网">−</button><button type="button" data-nb-zoom="reset">复位</button><button type="button" data-nb-zoom="auto" aria-pressed="false">自动旋转</button><button type="button" data-nb-zoom="links" aria-pressed="false">跨区连线</button></div>
       <div class="nb-legend">${Object.entries(K.systems).filter(([id])=>activeNodes().some(n=>n.taxonomy.system===id)).map(([id,g])=>`<button type="button" data-nb-system="${id}"><i style="background:${g.color}"></i>${html(g.label)}</button>`).join('')}<span>选中知识点可突出跨区关系 · 拖动旋转 · 双指缩放</span></div></section><aside class="nb-map-detail" aria-label="知识关系详情">${graphDetail(nodes,edges)}</aside></div>${notReviewed.length?`<p class="nb-save">另有 ${notReviewed.length} 讲已标记看完，知识关系待核对，暂不生成猜测连线。</p>`:''}`;
@@ -230,9 +256,13 @@ const Notebook = (() => {
   function focusEditor(){const el=document.getElementById('nb-editor');if(el)el.focus({preventScroll:true});}
   function updateTransform(){const g=document.getElementById('nb-viewport');if(g)g.setAttribute('transform',`translate(${state.panX} ${state.panY}) translate(600 370) scale(${state.zoom}) translate(-600 -370)`);}
   function handleClick(e) {
-    const target=e.target.closest('[data-nb-mode],[data-nb-note],[data-nb-edit],[data-nb-save],[data-nb-new],[data-nb-node],[data-nb-edge],[data-nb-concept],[data-nb-zoom],[data-nb-copy],[data-nb-duplicate],[data-nb-system],[data-nb-tax-node],[data-nb-source],[data-nb-official]');
+    const target=e.target.closest('[data-nb-mode],[data-nb-note],[data-nb-edit],[data-nb-save],[data-nb-new],[data-nb-node],[data-nb-edge],[data-nb-concept],[data-nb-zoom],[data-nb-copy],[data-nb-duplicate],[data-nb-system],[data-nb-tax-node],[data-nb-source],[data-nb-official],[data-nb-map-view],[data-nb-tree-system],[data-nb-tree-branch],[data-nb-tree-node]');
     if(!target)return false;
     const d=target.dataset;
+    if(d.nbMapView){state.mapView=d.nbMapView==='3d'?'3d':'tree';state.edge=null;state.graphQuery='';render();return true;}
+    if(d.nbTreeSystem){state.treeSystem=d.nbTreeSystem;state.treeBranch='';state.graphQuery='';state.edge=null;render();return true;}
+    if(d.nbTreeBranch){state.treeBranch=d.nbTreeBranch;state.graphQuery='';state.edge=null;render();return true;}
+    if(d.nbTreeNode){const n=activeNodes().find(n=>n.id===d.nbTreeNode);if(n){state.node=n.id;state.treeSystem=n.taxonomy.system;state.treeBranch=n.taxonomy.branch;state.graphQuery='';state.edge=null;}render();return true;}
     if(d.nbOfficial){select(d.nbOfficial,'official');return true;}
     if(d.nbSource){save();beforeRender();state.noteSource=d.nbSource==='official'?'official':'mine';state.editing=false;render();return true;}
     if(d.nbSystem){state.system=d.nbSystem;state.branch=d.nbBranch||'all';state.group='all';state.graphQuery='';state.edge=null;const family=activeNodes().filter(taxonomyMatches);if(!family.some(n=>n.id===state.node))state.node=family[0]?.id||null;render();return true;}
@@ -242,7 +272,7 @@ const Notebook = (() => {
     if(d.nbEdit){if(d.nbEdit==='read')save();state.noteSource='mine';state.editing=d.nbEdit==='write';render();if(state.editing)focusEditor();return true;}
     if('nbSave'in d){save();return true;}
     if('nbNew'in d){save();const id=uid(),key=`note:${id}`;mem.notes[id]={subject:'computer',text:'',createdAt:now()};lsSave();state.selected=key;state.editing=true;state.mode='notes';render();focusEditor();return true;}
-    if(d.nbNode||d.nbConcept){state.node=d.nbNode||d.nbConcept;state.edge=null;if(d.nbConcept){save();state.mode='map';state.group='all';state.system='all';state.branch='all';state.graphQuery='';persistView();}render();return true;}
+    if(d.nbNode||d.nbConcept){state.node=d.nbNode||d.nbConcept;state.edge=null;const n=activeNodes().find(n=>n.id===state.node);if(n){state.treeSystem=n.taxonomy.system;state.treeBranch=n.taxonomy.branch;}if(d.nbConcept){save();state.mode='map';state.group='all';state.system='all';state.branch='all';state.graphQuery='';persistView();}render();return true;}
     if(d.nbEdge){state.edge=d.nbEdge;render();return true;}
     if(d.nbZoom){if(typeof NotebookGraph3D!=='undefined'&&NotebookGraph3D.action(d.nbZoom))return true;if(d.nbZoom==='auto')return true;if(d.nbZoom==='reset'){state.zoom=1;state.panX=0;state.panY=0;}else state.zoom=Math.max(.5,Math.min(2.8,state.zoom*(d.nbZoom==='in'?1.2:1/1.2)));updateTransform();return true;}
     if('nbCopy'in d){copyText(textFor(current()),'草稿已复制');return true;}
