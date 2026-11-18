@@ -22,7 +22,9 @@ const StudyCircle = (() => {
     const pref=entry('preferences'),selected=pref.topics;
     if(!Array.isArray(selected)||!selected.some(id=>C.topics.some(t=>t.id===id)))return C.topics.map(t=>t.id);
     // Make the newly requested column visible for existing accounts, once.
-    const chosen=pref.topicVersion===2?selected:[...selected,'meme'];
+    const chosen=Number(pref.topicVersion)>=2?[...selected]:[...selected,'meme'];
+    // Add SQL once for existing programming readers; keep later opt-outs.
+    if(Number(pref.topicVersion||0)<3&&selected.includes('python'))chosen.push('sql');
     return C.topics.filter(t=>chosen.includes(t.id)).map(t=>t.id);
   }
   function persistPending(){
@@ -130,13 +132,15 @@ const StudyCircle = (() => {
   function lessonLabel(p){
     if(!p.lesson)return '兴趣拓展';
     const [id,i]=p.lesson;
-    return mem.courses[id]&&(sylWatch(id)[i]||sylDone(id)[i])?'接着你学过的 · '+(id==='y1-cs50p'?'CS50P':'CS50T'):'兴趣拓展';
+    const name={'y1-cs50p':'CS50P','y1-cs50t':'CS50T','y1-cs50sql':'CS50 SQL'}[id]||'课程';
+    return mem.courses[id]&&(sylWatch(id)[i]||sylDone(id)[i])?'接着你学过的 · '+name:'兴趣拓展';
   }
   const dateLabel=date=>/^\d{4}-\d{2}-\d{2}$/.test(date||'')?`${Number(date.slice(5,7))}月${Number(date.slice(8,10))}日`:'';
   function avatar(id){
     if(id==='self')return '<img src="circle-profile/avatar.jpg" alt="我的头像" width="1080" height="1078">';
     const shapes={
       python:'<path d="M18 21h19v9H27v13H16V31h10V21"/><circle cx="32" cy="25" r="1"/><path d="M38 39H19v-9h10V17h11v12H30v10" opacity=".45"/>',
+      sql:'<ellipse cx="28" cy="15" rx="17" ry="7"/><path d="M11 15v26c0 9 34 9 34 0V15M11 28c0 9 34 9 34 0"/>',
       network:'<circle cx="28" cy="28" r="17"/><ellipse cx="28" cy="28" rx="8" ry="17"/><path d="M12 23h32M12 33h32"/>',
       meme:'<path d="M12 23 15 9l12 9h3l11-9 3 14q9 24-16 26Q3 47 12 23Z"/><path d="m18 29 5 3-5 3m20-6-5 3 5 3M23 41q5 5 10 0"/>',
       music:'<path d="M23 39V16l19-4v23M23 23l19-4"/><ellipse cx="18" cy="39" rx="6" ry="4"/><ellipse cx="37" cy="35" rx="6" ry="4"/>',
@@ -252,7 +256,7 @@ const StudyCircle = (() => {
     const id=e.target.dataset?.sfInterest;if(!id)return;
     let selected=preferences();selected=e.target.checked?[...new Set([...selected,id])]:selected.filter(t=>t!==id);
     if(!selected.length){e.target.checked=true;ui.notice='至少留一个喜欢的主题。';repaint();return;}
-    queue('preferences',{type:'preferences',topics:selected,topicVersion:2});ui.limit=6;ui.notice='兴趣已更新。';repaint(`[data-sf-interest="${id}"]`);
+    queue('preferences',{type:'preferences',topics:selected,topicVersion:3});ui.limit=6;ui.notice='兴趣已更新。';repaint(`[data-sf-interest="${id}"]`);
   });
   document.addEventListener('submit',e=>{
     const form=e.target.closest('[data-sf-form]');if(!form)return;e.preventDefault();
