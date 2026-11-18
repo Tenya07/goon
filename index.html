@@ -914,12 +914,12 @@ const SYLLABI = {
   name:'CS50P · 哈佛《Python 编程入门》',unit:'周',
   sub:'10 讲 · 每讲配一套 problem set · 机器判题 · 免费 · 对应 UCC CS1117',
   how:[
-   '<b>加速版 · 10 周学完（10/5 开始，12/13 结课）：</b>每周 8 小时（UCC 一门 5 学分课的量）：周一、三、五晚上 19–21 点，周日上午 10–12 点，排在「课表」页最下面的「自学课表」里。一周一讲，每讲除了 problem set 还配一个给自己用的小练习（每周展开里写着）。第 9 周开始顺带 HTML/CSS，对应 UCC 的 CS1115。',
-   '<b>加速版的规矩：</b>① problem set 自己写，不看答案；② 卡住 20 分钟就问，别硬扛一晚上；③ 在学校用 iPad 看讲座，回家用电脑写代码；④ 允许落后一周，落后两周就把小练习砍掉、只做 problem set。',
-   '<b>一周一讲，固定动作四步：</b>① 看讲座录像（每讲 1.5–3 小时，可以分两三次看完，官网有英文字幕，YouTube 上有中文字幕版）；② 边看边跟着敲代码，不要只看；③ 做这一讲的 problem set；④ 每题在终端跑 <span class="term">check50</span>，全绿才算过，再进下一讲。',
+   '<b>现在的节奏：</b>Python 每周 4 小时，包含看课、跟敲、作业和复习。先用两周推进一讲，作业没完成就接着做，不再按旧日期追课。剩余顺序：文件读写 → 正则表达式 → 面向对象 → 收尾与期末项目。期末项目单独留时间，做完再考虑网页课。',
+   '<b>规矩：</b>① problem set 自己写，不看答案；② 卡住 20 分钟就问，别硬扛一晚上；③ 学校忙就少做一段，不在下一周加倍补；④ 下面的应用小练习是可选项，先完成课程作业。',
+   '<b>每讲固定动作四步：</b>① 分段看讲座；② 边看边跟着敲代码；③ 做这一讲的 problem set；④ 跑 <span class="term">check50</span> 检查，再进下一讲。课程中的 Week 是内容编号，不要求一个自然周做完。',
    '<b>怎么交作业：</b>课程给你一个网页版的编程环境 <span class="term">cs50.dev</span>（VS Code，装在浏览器里，不用配任何东西——这一点正好和你「电脑」计划里的 VS Code 是同一个界面）。写完在终端敲 <span class="term">check50 cs50/problems/2022/python/题目名</span> 判题，敲 <span class="term">submit50</span> 提交。',
    '<b>判题是这门课的灵魂。</b>check50 会拿几十组输入喂你的程序，比对输出。全绿才算过——这就是大学里「作业及格」的标准，别自己觉得差不多就跳过。',
-   '<b>时间：</b>每周讲座 2 小时 + 作业 3–6 小时。前四周轻松，第 4 周开始变难。整门课认真做完大概 3–4 个月。',
+   '<b>时间怎么分：</b>一个 2 小时时段用于看课和跟敲，另一个用于练习、作业或排错；需要时可以互换。每段中间休息，4 小时是每周安排量，不是硬性打卡。',
    '<b>卡住了怎么办：</b>先看错误信息最后一行（它一般直说哪行、什么错）→ 用 print 把中间值打出来看 → 官网每讲下面有 shorts 短视频讲单个概念 → 还不行就把代码和报错贴到本页最下面的「问 Claude」。不要直接搜答案，那等于没上这门课。',
   ],
   weeks:[
@@ -998,7 +998,7 @@ const SYLLABI = {
   name:'CS50T · 哈佛《理解技术》',unit:'讲',
   sub:'6 讲 · 硬件、互联网、多媒体、安全、网页、编程 · 不用写代码 · 免费 · 对应 UCC CS1110/1111 的入门部分',
   how:[
-   '<b>加速版 · 3 周学完（10/5–10/25）：</b>副线，每周 8 小时（按 UCC 一门 5 学分课的量）。一周两讲，每讲看完录像，把下面「具体知识点」用自己的话在「我的笔记」里各写一两句。写不出来的那条就是没懂，回去重看那一段。',
+   '<b>按实际进度：</b>已学完的内容保留，需要时回查，不重复占用现在的 Python 和 SQL 时段。',
    '<b>这门课在哪看：</b>cs50.harvard.edu/technology，或 YouTube 搜 CS50T。哈佛 2024 年已经把它归档，不再发证书，但录像和讲义都还在，照样能学。',
    '<b>为什么先学它：</b>它是给「天天用电脑、但不知道里面怎么回事」的人讲的。学完以后再学 SQL、网页、网络，你都知道它们在整台电脑和整个互联网里处在哪个位置。',
   ],
@@ -1032,7 +1032,7 @@ const SYLLABI = {
   name:'CS50 SQL · 哈佛《数据库与 SQL 入门》',unit:'周',
   sub:'7 讲 · 每讲配一套作业 · 机器判题 · 免费 · 对应 UCC CS1106',
   how:[
-   '<b>加速版 · 7 周学完（10/26–12/13）：</b>副线，每周 8 小时，一周一讲。动作和 CS50P 一样：看讲座 → 跟着敲 → 做作业 → check50 全绿才算过。',
+   '<b>现在的节奏：</b>SQL 每周 2 小时，先完成当前讲的作业，再继续下一讲。一讲先估 2–3 周，时间不够就顺延；已看过的讲座不用因为重新排计划再看一遍。看课、跟敲、作业都算在这 2 小时里。',
    '<b>在哪写：</b>同一个 cs50.dev（浏览器里的 VS Code），用的是 SQLite。判题和 CS50P 一样：<span class="term">check50 cs50/problems/2024/sql/题目名</span>，再 <span class="term">submit50</span> 提交（年份以官网当年为准）。',
    '<b>和你的关系：</b>你网站后面的 Supabase 就是一个 SQL 数据库（PostgreSQL）。学完你能自己进 Supabase 后台查你的数据，家里公司的课酬表、学生表也能变成一张张能查的表。',
    '<b>作业题目：</b>每年会微调，下面写的是近几年的，以官网为准。',
@@ -2005,20 +2005,19 @@ function allUndoneHw(){
 }
 
 
-// ── 自学课表：按 UCC 强度，两门并行，每门每周 8 小时 ──
+// ── 自学课表：按实际进度，每周 Python 4 小时、SQL 2 小时 ──
 const CS_TRACKS={
  main:{n:'主线',seg:[{to:'2026-12-13',id:'y1-cs50p'}]},
  side:{n:'副线',seg:[{to:'2026-10-25',id:'y1-cs50t'},{to:'2026-12-13',id:'y1-cs50sql'}]},
 };
 const CS_BLOCKS_DEF=[
- {d:0,t:'19:00–21:00',k:'main'},{d:1,t:'19:00–21:00',k:'side'},{d:2,t:'19:00–21:00',k:'main'},
- {d:3,t:'20:00–22:00',k:'side'},{d:4,t:'19:00–21:00',k:'main'},
- {d:6,t:'10:00–12:00',k:'main'},{d:5,t:'14:00–18:00',k:'side'},
+ {d:0,t:'19:00–21:00',k:'main'},{d:2,t:'19:00–21:00',k:'main'},
+ {d:5,t:'15:00–17:00',k:'side'},
 ];
 const CS_DAYS=['周一','周二','周三','周四','周五','周六','周日'];
 const AUTO_COURSES={
  'y1-cs50t':{title:'CS50T · 哈佛《理解技术》',url:'https://cs50.harvard.edu/technology/',note:'副线第一门：10/5–10/25，每周 8 小时，一周两讲',status:'doing',area:'sys'},
- 'y1-cs50sql':{title:'CS50 SQL · 哈佛《数据库与 SQL 入门》',url:'https://cs50.harvard.edu/sql/',note:'副线第二门：10/26–12/13，每周 8 小时，一周一讲',status:'want',area:'db'},
+ 'y1-cs50sql':{title:'CS50 SQL · 哈佛《数据库与 SQL 入门》',url:'https://cs50.harvard.edu/sql/',note:'副线：每周 2 小时，按实际进度完成讲座和作业',status:'want',area:'db'},
  'y1-fcc-js':{title:'freeCodeCamp · JavaScript',url:'https://www.freecodecamp.org/learn/',note:'先做完 HTML/CSS 再开，寒假以后',status:'want',area:'web'},
 };
 function ensureAutoCourses(){
@@ -2071,11 +2070,39 @@ function csTrackOn(k,date){ // 按打勾进度：这条线下一讲该学什么
   for(const id of (CS_ORDER[k]||[])){
     const syl=SYLLABI[id]; if(!syl) continue;
     const d=sylDone(id), i=syl.weeks.findIndex((_,j)=>!d[j]); if(i<0) continue;
-    const w=syl.weeks[i], r=fastRange(w.fast);
-    const note=(r&&date>r[1])?'（按计划已经该学完，加油追）':(date<'2026-10-05'?'（10/5 正式开始）':'');
-    return {name:syl.name.split(' · ')[0],wk:'下一讲：'+w.t+note,id};
+    const w=syl.weeks[i], seen=!!sylWatch(id)[i];
+    return {name:syl.name.split(' · ')[0],wk:(seen?'继续作业：':'接着学：')+w.t,id};
   }
-  return {name:'这条线学完了',wk:'回来找 Claude 排下一门',id:null};
+  return {name:'这条线学完了',wk:'先休息、复习，再决定下一门',id:null};
+}
+function csClearStudyCell(value){
+  const lines=String(value||'').split('\n'), remove=new Set();
+  for(let i=0;i<lines.length;i++) if(/自学\s*·/.test(lines[i])){
+    remove.add(i);
+    if(i>0&&/^\s*\d{1,2}\s*[:：.]\s*\d{2}\s*$/.test(lines[i-1])) remove.add(i-1);
+  }
+  return remove.size?lines.filter((_,i)=>!remove.has(i)).join('\n').trim():value;
+}
+function csSteadyTimetable(t,blocks){
+  const next=JSON.parse(JSON.stringify(t));
+  next.days=(next.days||[]).slice(); if(next.days.length===6) next.days.push('周日 sunday');
+  const studyRow=(next.rows||[]).findIndex(row=>row.some(v=>/自学\s*·/.test(v||''))&&row.every(v=>!String(v||'').trim()||/自学\s*·/.test(v)));
+  next.rows=(next.rows||[]).map(row=>row.map(csClearStudyCell));
+  const row=next.days.map((_,d)=>blocks.filter(b=>Number(b.d)===d).map(b=>b.t+' 自学 · '+(b.k==='side'?'SQL（副线）':'CS50P（主线）')).join('\n'));
+  if(row.some(Boolean)){if(studyRow>=0)next.rows[studyRow]=row;else next.rows.push(row);}
+  return next;
+}
+let csPlanApplying=false;
+async function csApplySteadyPlan(){
+  if(csPlanApplying) return; csPlanApplying=true;
+  try{
+    const old=mem.hist.csplan||{}, blocks=CS_BLOCKS_DEF.map(b=>({...b}));
+    const timetable=csSteadyTimetable(ttData(),blocks);
+    await store.set('hist','csplan',{blocks,mode:'steady',replannedAt:localDate(new Date()),previousBlocks:old.previousBlocks||csBlocks().map(b=>({...b}))});
+    await store.set('hist','csweek',{target:360});
+    await ttSave(timetable);
+    csPlanEdit=false;
+  }finally{csPlanApplying=false;render();}
 }
 function csKindOf(text){ const t=String(text||''); if(!/自学 ·/.test(t)) return null; return /副线/.test(t)?'side':'main'; }
 function csToday(){
@@ -2103,15 +2130,18 @@ function renderCsPlan(){
       <select data-cspf="${j}:k">${Object.entries(CS_TRACKS).map(([k,t])=>`<option value="${k}" ${b.k===k?'selected':''}>${t.n}</option>`).join('')}</select>
       <button class="x" data-csp="del:${j}" title="删掉这一段">×</button></div>`).join('')}
     <div class="actions" style="justify-content:flex-start;gap:8px;margin-top:8px"><button class="btn ghost" data-csp="add">加一段</button><button class="btn ghost" data-csp="reset">恢复默认</button><button class="btn" data-csp="edit">改好了</button></div></div>`:'';
-  return `<div class="sec csplan"><h3>自学课表 <small>按 UCC 强度：两门并行，每门每周约 8 小时 · 主线 ${h(sum.main)} 小时 · 副线 ${h(sum.side)} 小时</small></h3>
-    <p class="lead" style="margin:0 0 10px">UCC 一门 5 学分的课，一学期大约 100–125 小时，摊到 12 周就是每周 8 小时左右（上课 3–4 小时，剩下是作业）。这里排了两门：主线 CS50P（10/5–12/13）；副线先学 CS50T（10/5–10/25），再学 CS50 SQL（10/26–12/13）。每一格按你在「电脑」页打的勾，自动显示这条线的下一讲；一门学完自动换下一门（主线：CS50P → 网页 HTML/CSS → JavaScript；副线：CS50T → SQL）。学校的事排第一，学校有事就把自学挪走，不用硬撑。</p>
+  return `<div class="sec csplan"><h3>自学课表 <small>每周 ${h(sum.main+sum.side)} 小时 · Python 主线 ${h(sum.main)} 小时 · SQL 副线 ${h(sum.side)} 小时</small></h3>
+    <p class="lead" style="margin:0 0 10px">先试两周：周一、周三各 2 小时 Python，周六 2 小时 SQL。每段都包含看课、跟敲、练习和休息，不是连续看两小时视频。其余四天留给学校、休息和生活。学校有事就跳过一段，下一周不加倍补；一讲没做完，接着做。本周从剩余时段开始，不补已经过去的周一。</p>
+    <p class="lead" style="margin:0 0 10px"><b>最近两周：</b>Python 先推进当前讲，文件读写暂留两周；SQL 先做当前讲的作业，完成后再学表与表的关系。两周后按实际耗时调整。正则、面向对象和期末项目依次来，先不加网页等新课。</p>
     <div class="cspgrid">${grid}</div>
+    <div class="actions" style="justify-content:flex-start;margin-top:10px"><button class="btn ghost" data-csp="steady" ${csPlanApplying?'disabled':''}>${csPlanApplying?'正在更新安排…':'应用每周 6 小时安排'}</button><span class="hint">同步调整课表中的自学格和每周目标</span></div>
     ${csPlanEdit?edit:'<div class="actions" style="justify-content:flex-start;margin-top:10px"><button class="btn ghost" data-csp="edit">改时间</button></div>'}
   </div>`;
 }
-document.addEventListener('click',e=>{
+document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-csp]'); if(!b) return;
   const a=b.dataset.csp, bl=csBlocks().map(x=>Object.assign({},x));
+  if(a==='steady'){await csApplySteadyPlan();return;}
   if(a==='edit'){ csPlanEdit=!csPlanEdit; render(); return; }
   if(a==='add'){ bl.push({d:6,t:'10:00–12:00',k:'main'}); store.set('hist','csplan',{blocks:bl}); return; }
   if(a==='reset'){ store.set('hist','csplan',{blocks:CS_BLOCKS_DEF.map(x=>Object.assign({},x))}); return; }
@@ -2250,7 +2280,7 @@ function renderCsWeek(){
   const wk=isoWeek(new Date());
   const log=mem.hist.csweek||{};
   const mins=(log.iso===wk?Number(log.mins):0)||0;
-  const target=Number(log.target)||960;
+  const target=Number(log.target)||360;
   const picks=csPick(), pick=picks[0], side=picks.find(x=>x!==pick&&x.score<2&&x.i>=0), last=csLastNote();
   const pct=Math.min(100,Math.round(mins/target*100));
   const hm=m=>(m%60? (m/60).toFixed(1).replace(/\.0$/,'') : m/60)+' 小时';
@@ -2517,7 +2547,7 @@ function renderSyl(id,syl){
      return `<div class="wk ${d[i]?'ok':''} ${open?'open':''}">
       <div class="wkt"><input type="checkbox" id="wk-${id}-${i}" ${d[i]?'checked':''} data-wkdone="${id}:${i}">
         <label class="wl" for="wk-${id}-${i}">${esc(w.t)}${w.en?`<span>${esc(w.en)}</span>`:''}</label>
-        ${w.fast&&w.fast!=='已完成'&&!d[i]?`<span class="wkfast" title="加速版计划">${esc(w.fast)}</span>`:''}
+        ${w.fast&&w.fast!=='已完成'&&!d[i]&&!['y1-cs50p','y1-cs50t','y1-cs50sql'].includes(id)?`<span class="wkfast" title="参考安排">${esc(w.fast)}</span>`:''}
         ${(wt[i]&&!d[i]&&!open)?'<span class="wkhas seen" title="讲座看完了，作业还没做">讲座✓</span>':''}
         ${(nt[i]||'').trim()&&!open?`<span class="wkhas" title="${esc((nt[i]||'').trim().slice(0,60))}">笔记</span>`:''}
         <button class="wkx" data-wk="${id}:${i}">${open?'收起':'展开'}</button></div>
@@ -2527,7 +2557,7 @@ function renderSyl(id,syl){
           <label class="${d[i]?'on':''}" for="wkd-${id}-${i}"><input type="checkbox" id="wkd-${id}-${i}" ${d[i]?'checked':''} data-wkdone="${id}:${i}">作业做完了</label>
           <span class="hint">${d[i]?'这周过了。':wt[i]?'差作业。':'还没开始。'}</span>
         </div>
-        ${w.fast&&w.fastx&&w.fastx!=='—'?`<div class="f fast"><b>加速版 · ${esc(w.fast)}</b><p>${esc(w.fastx)}</p></div>`:''}
+        ${w.fast&&w.fastx&&w.fastx!=='—'?`<div class="f fast"><b>可选应用练习 · 学完本讲作业再考虑</b><p>${esc(w.fastx)}</p></div>`:''}
         ${w.goal?`<div class="f"><b>这周要会什么</b><p>${esc(w.goal)}</p></div>`:''}
         ${w.watch?`<div class="f"><b>看什么</b><p>${esc(w.watch)}</p></div>`:''}
         ${(w.learn||[]).length?`<div class="f"><b>具体知识点</b><ul>${w.learn.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
@@ -3000,7 +3030,7 @@ document.addEventListener('click',async e=>{
   const cl=e.target.closest('[data-cslog]'); if(cl){const add=Number(cl.dataset.cslog);
     const wk=isoWeek(new Date()), cur0=mem.hist.csweek||{};
     const base=(cur0.iso===wk?Number(cur0.mins):0)||0;
-    store.set('hist','csweek',{iso:wk,mins:add?base+add:0,target:Number(cur0.target)||240});
+    store.set('hist','csweek',{iso:wk,mins:add?base+add:0,target:Number(cur0.target)||360});
     return;}
   const wns=e.target.closest('[data-wknsave]'); if(wns){const k=wns.dataset.wknsave;
     const chg=wknCommit(k);
