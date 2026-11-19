@@ -1,0 +1,26 @@
+.study-route{margin:1.5rem 0;padding:1.5rem;border:1px solid #35414c;border-radius:16px;background:#10151b;color:#e4e9ee;font-size:1rem;line-height:1.75;max-width:1050px}
+.study-route *{box-sizing:border-box}
+.study-route-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.7rem}
+.study-route-head h3{font-size:1.35rem;margin:0;color:#f2f6f9}
+.study-route-kicker{margin:0 0 .2rem;color:#a6b8c8;font-size:.875rem;letter-spacing:.08em}
+.study-route-budget{white-space:nowrap;border:1px solid #51796e;border-radius:20px;padding:.25rem .7rem;color:#a6e0cc;font-size:.875rem}
+.study-route-intro{margin:.5rem 0 1.1rem;color:#c2ccd6}
+.study-route-now{padding:1rem 1.1rem;background:#182923;border-left:3px solid #83cbb2;border-radius:8px;margin-bottom:1rem}
+.study-route-now>strong{color:#b7e9d7}
+.study-route p{margin:.5rem 0}
+.study-route-progress{margin-top:.8rem;color:#d3e2dc;font-size:.9rem}
+.study-route-progress b{display:inline-block;min-width:6rem}
+.study-route-step{border-top:1px solid #303a44}
+.study-route summary{cursor:pointer;padding:.9rem .25rem;color:#eef2f6;font-weight:600;font-size:1rem}
+.study-route summary::marker{color:#8cbcaf}
+.study-route summary:focus-visible,.study-route a:focus-visible{outline:2px solid #b3e8da;outline-offset:4px}
+.study-route-body{padding:0 .35rem 1rem;color:#c8d2dc}
+.study-route-body b{color:#e8eef3}
+.study-route a{color:#a2ddcd;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.study-route-links{display:flex;flex-wrap:wrap;gap:.5rem 1rem;font-size:.9rem}
+.study-route-directions{display:grid;gap:.65rem;margin-top:1rem}
+.study-route-directions>details{border:1px solid #34404c;border-radius:9px;padding:0 .9rem;background:#141d26}
+.study-route-directions summary span{display:block;font-size:.9rem;font-weight:400;color:#abbcc9;padding-left:1rem}
+.study-route-directions>details>div{padding:0 .2rem 1rem}
+.study-route-foot{padding-top:1rem;border-top:1px solid #303a44;font-size:.875rem;color:#aabac8}
+@media(max-width:640px){.study-route{padding:1rem;margin:1rem 0;border-radius:12px}.study-route-head{align-items:flex-start;flex-wrap:wrap}.study-route-head h3{font-size:1.2rem}.study-route-progress b{display:block}.study-route-directions>details{padding:0 .65rem}}

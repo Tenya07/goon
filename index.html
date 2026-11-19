@@ -1,6 +1,7 @@
 <!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080b12"><style>[hidden]{display:none!important}</style>
 <title>五年学习本</title>
 <link rel="stylesheet" href="notebook.css?v=20261113-hierarchy">
+<link rel="stylesheet" href="study-roadmap.css?v=20261119">
 <link rel="stylesheet" href="study-circle.css?v=20261111-profile">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap">
 <style>
@@ -622,6 +623,7 @@ body.locked .shell{visibility:hidden}
   <main class="main" id="main"></main>
 </div>
 
+<script src="study-roadmap.js?v=20261119"></script>
 <script src="knowledge.js?v=20261112-tests"></script>
 <script src="official-notes.js?v=20261112-tests"></script>
 <script src="graph-3d.js?v=20261113-clusters"></script>
@@ -655,7 +657,7 @@ const SUBJECTS = [
  {id:'computer', k:'电', name:'电脑：VS Code · 表格 · 谷歌', desc:'「研究透」收成会用', plan:[
    '<b>VS Code 先会这几个就够：</b>打开文件夹、左边文件栏、中间编辑、下面终端、保存、查找替换、装中文语言包、装一个表格相关插件、看报错是红波浪。其余按钮用到再查。',
    '<b>谷歌：</b>搜索的引号和减号；邮箱；云端硬盘；文档；表格（和公司账直接相关）；翻译；日历。网站后台用到再学。',
-   '<b>五年作品最多两个：</b>课酬表；诗 / 提示词小模板。',
+   '<b>长期练习围绕自己的作品：</b>先做课酬或学习记录的小工具，再做一个能自己修改的网站。各方向的小实验可以复用这些作品，不必每门课另开一个大项目。',
    '<b>下面按 UCC 计算机系（CK401）的科目分了区</b>，你找到的课往对应那一区放。分区不是让你四年全学完——它是一张地图，让你知道自己捡到的东西属于哪一块、哪一块还空着。「工具」那一区优先级最高，剩下的按兴趣来。']},
  {id:'ai', k:'智', name:'AI 专区', desc:'会用 · 懂原理 · 接进公司', plan:[
    '<b>目标不是造模型，是不被「会用 AI 的人」甩开。</b>你有 AI 没有的东西：真实的领域（音乐、俄语环境、家里的业务）、判断力、知道该问什么。原理学到能分辨它什么时候可信就够，剩下的精力放在自己的东西上。',
@@ -1192,7 +1194,7 @@ const AREAS = {
   {k:'career',  y:3, n:'职场技术与技能',      c:'CS3306 · 10',  d:'比我原先估的重——10 学分，和团队项目一样分量。简历、面试、读别人的代码、提问、职业素养'},
   {k:'intern',  y:3, n:'实习',                c:'CS3300/3301 · 10', d:'6 个月或 12 个月两种。你的对应版本：给家里公司做一件真事并真的上线——这个替代是成立的，你有真业务'},
 
-  {k:'proj',    y:4, n:'计算机科学项目',      c:'CS4501 · 15',  d:'四年级唯一的必修，其余 30 学分全是选修。自选题目，独立做一个软件'},
+  {k:'proj',    y:4, n:'计算机科学项目',      c:'CS4501 · 15',  d:'2025/26 官方方案：项目 15 学分，另选修 45 学分。这里借它规划自学，不兑换 UCC 学分'},
   {k:'ai',      y:4, n:'人工智能 I / II',     c:'选修',         d:'和「AI 专区」那一页配着看'},
   {k:'iot',     y:4, n:'物联网',              c:'选修',         d:'让硬件联网：传感器、单片机'},
   {k:'mobile',  y:4, n:'移动网络 · 手机应用', c:'选修',         d:'想做 app 就选这个方向'},
@@ -2113,6 +2115,15 @@ function csToday(){
     return {cs:true,s:sp.s,e:sp.e,time:b.t,title:'自学 · '+tr.name,detail:tr.wk};
   }).filter(Boolean);
 }
+function renderCsRoadmap(){
+  if(typeof StudyRoadmap==='undefined') return '';
+  const read=id=>{
+    const syl=SYLLABI[id]; if(!syl||!mem.courses[id]) return null;
+    const done=sylDone(id), next=syl.weeks.findIndex((_,i)=>!done[i]);
+    return {done:syl.weeks.filter((_,i)=>done[i]).length,total:syl.weeks.length,next:next<0?null:syl.weeks[next].t};
+  };
+  return StudyRoadmap.render({python:read('y1-cs50p'),sql:read('y1-cs50sql')});
+}
 function renderCsPlan(){
   const bl=csBlocks(), date=localDate(new Date()), today=(new Date().getDay()+6)%7;
   const sum={main:0,side:0}; bl.forEach(b=>{const sp=csSpan(b.t); if(sp&&sum[b.k]!==undefined) sum[b.k]+=sp.e-sp.s;});
@@ -2388,7 +2399,7 @@ function renderSubject(s){
   if(s.id==='driving') extra=renderCars();
   const top = s.id==='computer' ? renderCsWeek() : '';
   return `${s.id==='computer'?'<div class="nb nb-courses-nav">'+Notebook.tabs()+'</div>':''}<div class="head"><div class="eyebrow">${s.k} · ${esc(s.desc)}</div><h2>${esc(s.name)}</h2></div>
-  ${top}
+  ${top}${s.id==='computer'?renderCsRoadmap():''}
   <div class="sec"><h3>计划里怎么说</h3><div class="plan">${s.plan.map(p=>`<p>${p}</p>`).join('')}</div></div>
   ${extra}
   <div class="grid2">
