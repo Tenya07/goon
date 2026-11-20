@@ -286,10 +286,33 @@ const Notebook = (() => {
   });
   document.addEventListener('compositionend',e=>{if(e.target.id==='nb-editor')input(e.target.value);});
   document.addEventListener('change',e=>{if(e.target.id==='nb-course'){state.course=e.target.value;render();}if(e.target.id==='nb-group'){state.group=e.target.value;state.edge=null;render();}});
+  function indentEditor(el,outdent) {
+    const text=el.value,start=el.selectionStart,end=el.selectionEnd,direction=el.selectionDirection;
+    const top=el.scrollTop,left=el.scrollLeft;
+    if(!outdent&&start===end){
+      el.setRangeText('    ',start,end,'end');
+    }else{
+      const first=start===0?0:text.lastIndexOf('\n',start-1)+1;
+      const lastSelected=end>start&&text[end-1]==='\n'?end-1:end;
+      const nextBreak=text.indexOf('\n',lastSelected),last=nextBreak<0?text.length:nextBreak;
+      const edits=[];let offset=first;
+      const replacement=text.slice(first,last).split('\n').map(line=>{
+        const removed=outdent?(line.match(/^(?: {1,4}|\t)/)?.[0].length||0):0;
+        edits.push({at:offset,removed,added:outdent?0:4});offset+=line.length+1;
+        return outdent?line.slice(removed):'    '+line;
+      }).join('\n');
+      if(replacement===text.slice(first,last))return false;
+      const position=pos=>pos+edits.reduce((delta,edit)=>pos<edit.at?delta:delta+edit.added-Math.min(edit.removed,pos-edit.at),0);
+      el.setRangeText(replacement,first,last,'preserve');
+      el.setSelectionRange(position(start),position(end),direction);
+    }
+    el.scrollTop=top;el.scrollLeft=left;
+    return true;
+  }
   document.addEventListener('keydown',e=>{
     if(cur==='computer'&&state.mode==='notes'&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();save();}
     if((e.key==='Enter'||e.key===' ')&&e.target.matches('.nb-node,.nb-edge')){e.preventDefault();handleClick(e);}
-    if(e.target.id==='nb-editor'&&e.key==='Tab'){e.preventDefault();const el=e.target,start=el.selectionStart;el.setRangeText('    ',start,el.selectionEnd,'end');input(el.value);}
+    if(e.target.id==='nb-editor'&&e.key==='Tab'&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.isComposing){e.preventDefault();if(indentEditor(e.target,e.shiftKey))input(e.target.value);}
   });
   document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
   window.addEventListener('pagehide',persistDrafts);
